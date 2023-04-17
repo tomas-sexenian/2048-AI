@@ -6,6 +6,7 @@ no_pertenece(_, []).
 no_pertenece(X, [Y|Resto]) :-
      X \= Y, no_pertenece(X, Resto).
 
+elegir(_, [], []).
 elegir(X, [X|L], L).
 elegir(X, [H|L], [H|R]) :- 
     elegir(X, L, R).
@@ -15,9 +16,9 @@ contenida([X|Resto], L2) :-
     pertenece(X, L2), contenida(Resto, L2).
 
 permutacion([], []).
-permutacion([H|T], L2) :-
-    elegir(H, L2, R),
-    permutacion(T, R).
+permutacion(L1, [X|L2]) :-
+    elegir(X, L1, R),
+    permutacion(R, L2).
 
 suma([], 0).
 suma([H|T], S) :-
