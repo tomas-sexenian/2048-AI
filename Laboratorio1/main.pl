@@ -6,19 +6,27 @@ no_pertenece(_, []).
 no_pertenece(X, [Y|Resto]) :-
      X \= Y, no_pertenece(X, Resto).
 
-elegir(_, [], []).
-elegir(X, [X|L], L).
-elegir(X, [H|L], [H|R]) :- 
-    elegir(X, L, R).
+elegir(X, [X|T], T).
+elegir(X, [H|T], [H|R]) :-
+    elegir(X, T, R).
 
 contenida([], _).
 contenida([X|Resto], L2) :- 
     pertenece(X, L2), contenida(Resto, L2).
 
-permutacion([], []).
-permutacion(L1, [X|L2]) :-
-    elegir(X, L1, R),
-    permutacion(R, L2).
+% COMIENZO PREDICADO PERMUTACION
+
+% perm_aux(InputList, Accumulator, Permutation)
+perm_aux([], Acc, Acc).
+perm_aux(L, Acc, P) :-
+    elegir(X, L, L1),
+    perm_aux(L1, [X|Acc], P).
+
+% permutacion(InputList, Permutation)
+permutacion(L, P) :-
+    perm_aux(L, [], P).
+
+% FIN PREDICADO PERMUTACION
 
 suma([], 0).
 suma([H|T], S) :-
