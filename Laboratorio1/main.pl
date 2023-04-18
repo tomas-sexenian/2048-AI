@@ -48,19 +48,33 @@ minimo([H|T], C, M) :-
     H >= C,
     minimo(T, C, M).
 
-repetir(N, V, L) :- repetir(N, V, [], L).
-repetir(0, _, AL, AL).
-repetir(N, V, AL, L) :- N1 is N - 1, repetir(N1, V, [V|AL], L).
+repetir(0, _, []).
+repetir(N, Valor, [Valor|Lista]) :-
+    N > 0,
+    NewN is N - 1,
+    repetir(NewN, Valor, Lista).
 
-matriz(F, C, V, M) :- matriz(F, C, V, [], M).
-matriz(0, _, _, AM, AM).
-matriz(F, C, V, AM, M) :- F1 is F - 1, repetir(C, V, L), matriz(F1, C, V, [L|AM], M).
+matriz(0, _, _, []).
+matriz(F, C, V, [Row|M]) :-
+    F > 0,
+    repetir(C, V, Row),
+    NewF is F - 1,
+    matriz(NewF, C, V, M).
 
-sustituir(L1, VV, VN, I, C, L2) :- sustituir(L1, VV, VN, I, C, [], L2).
-sustituir([], _, _, _, _, AL2, L2) :- reverse(AL2, L2).
-sustituir([X|L1s], _, _, _, 0, AL2, L2) :- sustituir(L1s, _, _, _, 0, [X|AL2], L2).
-sustituir([VV|L1s], VV, VN, 0, C, AL2, L2) :- C1 is C - 1, sustituir(L1s, VV, VN, 0, C1, [VN|AL2], L2).
-sustituir([X|L1s], VV, VN, I, C, AL2, L2) :-  I1 is I - 1, sustituir(L1s, VV, VN, I1, C, [X|AL2], L2).
+sustituir(L1, _, _, _, 0, L1).
+sustituir([], _, _, _, _, []).
+sustituir([H|T], ValorViejo, ValorNuevo, Inicio, Cantidad, [H|L2]) :-
+    Inicio > 0,
+    NewInicio is Inicio - 1,
+    sustituir(T, ValorViejo, ValorNuevo, NewInicio, Cantidad, L2).
+sustituir([ValorViejo|T], ValorViejo, ValorNuevo, 0, Cantidad, [ValorNuevo|L2]) :-
+    Cantidad > 0,
+    NewCantidad is Cantidad - 1,
+    sustituir(T, ValorViejo, ValorNuevo, 0, NewCantidad, L2).
+sustituir([H|T], ValorViejo, ValorNuevo, 0, Cantidad, [H|L2]) :-
+    H \= ValorViejo,
+    sustituir(T, ValorViejo, ValorNuevo, 0, Cantidad, L2).
+
 
 % COMIENZO PREDICADO 2.1
 insertar_mueble_posicion(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2) :-
