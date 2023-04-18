@@ -6,9 +6,10 @@ no_pertenece(_, []).
 no_pertenece(X, [Y|Resto]) :-
      X \= Y, no_pertenece(X, Resto).
 
-elegir(X, [X|T], T).
-elegir(X, [H|T], [H|R]) :-
-    elegir(X, T, R).
+elegir(X, [X|Tail], Tail).
+elegir(_, [], []).
+elegir(X, [Head|Tail], [Head|R]) :-
+    elegir(X, Tail, R).
 
 contenida([], _).
 contenida([X|Resto], L2) :- 
@@ -16,10 +17,14 @@ contenida([X|Resto], L2) :-
 
 % COMIENZO PREDICADO PERMUTACION
 
+elegir_perm_aux(X, [X|T], T).
+elegir_perm_aux(X, [H|T], [H|R]) :-
+    elegir_perm_aux(X, T, R).
+
 % perm_aux(InputList, Accumulator, Permutation)
 perm_aux([], Acc, Acc).
 perm_aux(L, Acc, P) :-
-    elegir(X, L, L1),
+    elegir_perm_aux(X, L, L1),
     perm_aux(L1, [X|Acc], P).
 
 % permutacion(InputList, Permutation)
