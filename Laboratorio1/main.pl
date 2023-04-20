@@ -73,7 +73,28 @@ sustituir([H|T], ValorViejo, ValorNuevo, 0, Cantidad, [H|L2]) :-
 
 % COMIENZO PREDICADO 2.1
 insertar_mueble_posicion(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2) :-
-insert_rows(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2).
+    check_zeros(M1, NumFila, NumColumna, D1, D2),
+    insert_rows(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2).
+
+check_zeros(_, _, _, 0, _).
+check_zeros([H|T], NumFila, NumColumna, D1, D2) :-
+    D1 > 0,
+    (NumFila =< 0 ->
+    (check_row_zeros(H, NumColumna, D2),
+    D11 is D1 - 1);
+    D11 = D1),
+    NumFila1 is NumFila - 1,
+    check_zeros(T, NumFila1, NumColumna, D11, D2).
+
+check_row_zeros(_, _, 0).
+check_row_zeros([H|T], NumColumna, D2) :-
+    D2 > 0,
+    (NumColumna =< 0 ->
+    (H = 0,
+    D21 is D2 - 1);
+    D21 = D2),
+    NumColumna1 is NumColumna - 1,
+    check_row_zeros(T, NumColumna1, D21).
 
 insert_rows(M1, _, _, 0, _, _, M1).
 insert_rows([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
