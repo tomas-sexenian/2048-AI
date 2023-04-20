@@ -83,11 +83,11 @@ insert_rows(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2).
 insert_rows(M1, _, _, 0, _, _, M1).
 insert_rows([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
     D1 > 0,
-    NumFila1 is NumFila - 1,
-    (NumFila1 =:= -1 ->
+    (NumFila =< 0 ->
     (sustituir(H, 0, Etiqueta, NumColumna, D2, H2),
     D11 is D1 - 1);
     (H2 = H, D11 = D1)),
+    NumFila1 is NumFila - 1,
     insert_rows(T, NumFila1, NumColumna, D11, D2, Etiqueta, M2).
 % FIN PREDICADO 2.1
 
