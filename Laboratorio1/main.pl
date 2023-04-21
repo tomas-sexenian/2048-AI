@@ -112,20 +112,9 @@ insert_rows([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
 agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
     Filas > 0,
     Columnas > 0,
-    (   % Try Width x Length orientation
-        MaxFila is Filas - Largo,
-        MaxColumna is Columnas - Ancho,
-        between(0, MaxFila, F),
-        between(0, MaxColumna, C),
-        insertar_mueble_posicion(M1, F, C, Largo, Ancho, Etiqueta, M2)
-    ;
-        % Try Length x Width orientation
-        MaxFila is Filas - Ancho,
-        MaxColumna is Columnas - Largo,
-        between(0, MaxFila, F),
-        between(0, MaxColumna, C),
-        insertar_mueble_posicion(M1, F, C, Ancho, Largo, Etiqueta, M2)
-    ).
+    between(0, Filas, F),
+    between(0, Columnas, C),
+    insertar_mueble_posicion(M1, F, C, Largo, Ancho, Etiqueta, M2).
 % FIN PREDICADO 2.2
 
 % COMIENZO PREDICADO 2.3
