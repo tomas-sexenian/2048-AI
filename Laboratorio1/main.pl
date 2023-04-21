@@ -109,35 +109,13 @@ insert_rows([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
 
 % COMIENZO PREDICADO 2.2
 agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
-    (try_insert(M1, Filas, Columnas, Largo, Ancho, Etiqueta, M2);
-    try_insert(M1, Filas, Columnas, Ancho, Largo, Etiqueta, M2)).
-
-try_insert(M1, Filas, Columnas, D1, D2, Etiqueta, M2) :-
-    between(0, Filas, Fila),
-    between(0, Columnas, Columna),
-    MaxFila is Fila + D1,
-    MaxColumna is Columna + D2,
-    MaxFila =< Filas,
-    MaxColumna =< Columnas,
-    is_space_free(M1, Fila, Columna, D1, D2),
-    insertar_mueble_posicion(M1, Fila, Columna, D1, D2, Etiqueta, M2).
-
-is_space_free(_, _, _, 0, _).
-is_space_free(M, Fila, Columna, D1, D2) :-
-    D1 > 0,
-    nth0(Fila, M, Row),
-    all_zeros(Row, Columna, D2),
-    D11 is D1 - 1,
-    Fila1 is Fila + 1,
-    is_space_free(M, Fila1, Columna, D11, D2).
-
-all_zeros(_, 0, 0).
-all_zeros([0|T], Columna, Count) :-
-    Columna >= 0,
-    Count > 0,
-    Count1 is Count - 1,
-    Columna1 is Columna - 1,
-    all_zeros(T, Columna1, Count1).
+    Filas > 0,
+    Columnas > 0,
+    MaxFila is Filas - Largo,
+    MaxColumna is Columnas - Ancho,
+    between(0, MaxFila, F),
+    between(0, MaxColumna, C),
+    insertar_mueble_posicion(M1, F, C, Largo, Ancho, Etiqueta, M2).
 % FIN PREDICADO 2.2
 
 % COMIENZO PREDICADO 2.3
