@@ -56,8 +56,9 @@ matriz(F, C, V, [Row|M]) :-
     NewF is F - 1,
     matriz(NewF, C, V, M).
 
-sustituir(L1, _, _, _, 0, L1).
-sustituir([], _, _, _, _, []).
+sustituir([], _, _, _, Cantidad, []).
+sustituir(L1, _, _, _, 0, L1) :- 
+    L1 \= [].
 sustituir([H|T], ValorViejo, ValorNuevo, Inicio, Cantidad, [H|L2]) :-
     Inicio > 0,
     NewInicio is Inicio - 1,
@@ -66,10 +67,6 @@ sustituir([ValorViejo|T], ValorViejo, ValorNuevo, 0, Cantidad, [ValorNuevo|L2]) 
     Cantidad > 0,
     NewCantidad is Cantidad - 1,
     sustituir(T, ValorViejo, ValorNuevo, 0, NewCantidad, L2).
-sustituir([H|T], ValorViejo, ValorNuevo, 0, Cantidad, [H|L2]) :-
-    H \= ValorViejo,
-    sustituir(T, ValorViejo, ValorNuevo, 0, Cantidad, L2).
-
 
 % COMIENZO PREDICADO 2.1
 insertar_mueble_posicion(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2) :-
