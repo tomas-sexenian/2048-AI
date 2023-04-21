@@ -128,6 +128,10 @@ agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
 % FIN PREDICADO 2.2
 
 % COMIENZO PREDICADO 2.3
+
+% ESTA IMPLEMENTACION PROBABLEMENTE SEA CUALQUIER COSA
+% HABRIA QUE ARRANCAR ESTE PREDICADO DE 0
+
 muebles(Filas, Columnas, Muebles, M) :-
     empty_matrix(Filas, Columnas, EmptyMatrix),
     arrange_muebles(Muebles, EmptyMatrix, M).
