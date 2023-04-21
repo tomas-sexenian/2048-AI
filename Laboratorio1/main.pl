@@ -50,8 +50,8 @@ repetir(N, Valor, [Valor|Lista]) :-
     repetir(NewN, Valor, Lista).
 
 matriz(0, _, _, []).
+matriz(_, 0, _, []).
 matriz(F, C, V, [Row|M]) :-
-    F > 0,
     repetir(C, V, Row),
     NewF is F - 1,
     matriz(NewF, C, V, M).
@@ -74,15 +74,19 @@ sustituir([H|T], ValorViejo, ValorNuevo, 0, Cantidad, [H|L2]) :-
 % COMIENZO PREDICADO 2.1
 insertar_mueble_posicion(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2) :-
     check_zeros(M1, NumFila, NumColumna, D1, D2),
-    insert_rows(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2).
+    insert_rows(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2);
+    check_zeros(M1, NumFila, NumColumna, D2, D1),
+    insert_rows(M1, NumFila, NumColumna, D2, D1, Etiqueta, M2).
 
 check_zeros(_, _, _, 0, _).
 check_zeros([H|T], NumFila, NumColumna, D1, D2) :-
     D1 > 0,
-    (NumFila =< 0 ->
-    (check_row_zeros(H, NumColumna, D2),
-    D11 is D1 - 1);
-    D11 = D1),
+    (   NumFila =< 0,
+        check_row_zeros(H, NumColumna, D2),
+        D11 is D1 - 1
+    ;   NumFila > 0,
+        D11 = D1
+    ),
     NumFila1 is NumFila - 1,
     check_zeros(T, NumFila1, NumColumna, D11, D2).
 
