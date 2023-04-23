@@ -58,7 +58,7 @@ matriz(F, C, V, [Row|M]) :-
     NewF is F - 1,
     matriz(NewF, C, V, M).
 
-sustituir([], _, _, _, Cantidad, []).
+sustituir([], _, _, _, _, []).
 sustituir(L1, _, _, _, 0, L1) :- 
     L1 \= [].
 sustituir([H|T], ValorViejo, ValorNuevo, Inicio, Cantidad, [H|L2]) :-
@@ -121,6 +121,15 @@ agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
 
 % COMIENZO PREDICADO 2.3
 
+muebles(Filas, Columnas, Muebles, M) :-
+    matriz(Filas, Columnas, 0, M1),
+    agregar_muebles(Filas, Columnas, Muebles, M1, M2),
+    M = M2.
+
+agregar_muebles(_, _, [], M, M).
+agregar_muebles(Filas, Columnas, [mueble(Largo, Ancho, V)|T], M1, M2) :-
+    agregar_mueble(Filas, Columnas, M1, Largo, Ancho, V, M3),
+    agregar_muebles(Filas, Columnas, T, M3, M2).
 
 
 % FIN PREDICADO 2.3
