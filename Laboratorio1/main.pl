@@ -52,6 +52,8 @@ repetir(N, Valor, [Valor|Lista]) :-
 matriz(0, _, _, []).
 matriz(_, 0, _, []).
 matriz(F, C, V, [Row|M]) :-
+    F > 0,
+    C > 0,
     repetir(C, V, Row),
     NewF is F - 1,
     matriz(NewF, C, V, M).
@@ -119,28 +121,6 @@ agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
 
 % COMIENZO PREDICADO 2.3
 
-% ESTA IMPLEMENTACION PROBABLEMENTE SEA CUALQUIER COSA
-% HABRIA QUE ARRANCAR ESTE PREDICADO DE 0
 
-muebles(Filas, Columnas, Muebles, M) :-
-    empty_matrix(Filas, Columnas, EmptyMatrix),
-    arrange_muebles(Muebles, EmptyMatrix, M).
 
-arrange_muebles([], M, M).
-arrange_muebles([furniture(Largo, Ancho, Etiqueta)|T], M1, M) :-
-    agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2),
-    arrange_muebles(T, M2, M).
-
-empty_matrix(0, _, []).
-empty_matrix(Filas, Columnas, [Row|M]) :-
-    Filas > 0,
-    create_row(Columnas, Row),
-    Filas1 is Filas - 1,
-    empty_matrix(Filas1, Columnas, M).
-
-create_row(0, []).
-    create_row(Columnas, [0|Row]) :-
-    Columnas > 0,
-    Columnas1 is Columnas - 1,
-    create_row(Columnas1, Row).
 % FIN PREDICADO 2.3
