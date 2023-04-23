@@ -6,27 +6,20 @@ no_pertenece(_, []).
 no_pertenece(X, [Y|Resto]) :-
      X \= Y, no_pertenece(X, Resto).
 
-elegir(X, [X|Tail], Tail).
-elegir(X, [Head|Tail], [Head|R]) :-
-    elegir(X, Tail, R).
+elegir(X, [X|Resto], Resto).
+elegir(X, [Actual|Resto], [Actual|R]) :-
+    elegir(X, Resto, R).
 
 contenida([], _).
 contenida([X|Resto], L2) :- 
     pertenece(X, L2), contenida(Resto, L2).
 
-% COMIENZO PREDICADO PERMUTACION
-
-% perm_aux(InputList, Accumulator, Permutation)
 perm_aux([], Acc, Acc).
 perm_aux(L, Acc, P) :-
     elegir(X, L, L1),
     perm_aux(L1, [X|Acc], P).
-
-% permutacion(InputList, Permutation)
 permutacion(L, P) :-
     perm_aux(L, [], P).
-
-% FIN PREDICADO PERMUTACION
 
 suma([], 0).
 suma([H|T], S) :-
@@ -51,10 +44,10 @@ repetir(N, Valor, [Valor|Lista]) :-
 
 matriz(0, _, _, []).
 matriz(_, 0, _, []).
-matriz(F, C, V, [Row|M]) :-
+matriz(F, C, V, [Fila|M]) :-
     F > 0,
     C > 0,
-    repetir(C, V, Row),
+    repetir(C, V, Fila),
     NewF is F - 1,
     matriz(NewF, C, V, M).
 
@@ -72,42 +65,49 @@ sustituir([ValorViejo|T], ValorViejo, ValorNuevo, 0, Cantidad, [ValorNuevo|L2]) 
 
 % COMIENZO PREDICADO 2.1
 insertar_mueble_posicion(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2) :-
-    check_zeros(M1, NumFila, NumColumna, D1, D2),
-    insert_rows(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2);
-    check_zeros(M1, NumFila, NumColumna, D2, D1),
-    insert_rows(M1, NumFila, NumColumna, D2, D1, Etiqueta, M2).
+    revisar_ceros(M1, NumFila, NumColumna, D1, D2),
+    insertar_filas(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2);
+    revisar_ceros(M1, NumFila, NumColumna, D2, D1),
+    insertar_filas(M1, NumFila, NumColumna, D2, D1, Etiqueta, M2).
 
-check_zeros(_, _, _, 0, _).
-check_zeros([H|T], NumFila, NumColumna, D1, D2) :-
+revisar_ceros(_, _, _, 0, _).
+revisar_ceros([H|T], NumFila, NumColumna, D1, D2) :-
     D1 > 0,
     (   NumFila =< 0,
-        check_row_zeros(H, NumColumna, D2),
+        revisar_ceros_columna(H, NumColumna, D2),
         D11 is D1 - 1
     ;   NumFila > 0,
         D11 = D1
     ),
     NumFila1 is NumFila - 1,
-    check_zeros(T, NumFila1, NumColumna, D11, D2).
+    revisar_ceros(T, NumFila1, NumColumna, D11, D2).
 
-check_row_zeros(_, _, 0).
-check_row_zeros([H|T], NumColumna, D2) :-
+revisar_ceros_columna(_, _, 0).
+revisar_ceros_columna([H|T], NumColumna, D2) :-
     D2 > 0,
-    (NumColumna =< 0 ->
-    (H = 0,
-    D21 is D2 - 1);
-    D21 = D2),
     NumColumna1 is NumColumna - 1,
-    check_row_zeros(T, NumColumna1, D21).
+    (   NumColumna =< 0,
+        H = 0,
+        D21 is D2 - 1,
+        revisar_ceros_columna(T, NumColumna1, D21)
+    ;   NumColumna > 0,
+        D21 = D2,
+        revisar_ceros_columna(T, NumColumna1, D21)
+    ).
 
-insert_rows(M1, _, _, 0, _, _, M1).
-insert_rows([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
+insertar_filas(M1, _, _, 0, _, _, M1).
+insertar_filas([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
     D1 > 0,
-    (NumFila =< 0 ->
-    (sustituir(H, 0, Etiqueta, NumColumna, D2, H2),
-    D11 is D1 - 1);
-    (H2 = H, D11 = D1)),
     NumFila1 is NumFila - 1,
-    insert_rows(T, NumFila1, NumColumna, D11, D2, Etiqueta, M2).
+    (   NumFila =< 0,
+        sustituir(H, 0, Etiqueta, NumColumna, D2, H2),
+        D11 is D1 - 1,
+        insertar_filas(T, NumFila1, NumColumna, D11, D2, Etiqueta, M2)
+    ;   NumFila > 0,
+        H2 = H, 
+        D11 = D1,
+        insertar_filas(T, NumFila1, NumColumna, D11, D2, Etiqueta, M2)
+    ).
 % FIN PREDICADO 2.1
 
 % COMIENZO PREDICADO 2.2
@@ -120,7 +120,6 @@ agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
 % FIN PREDICADO 2.2
 
 % COMIENZO PREDICADO 2.3
-
 muebles(Filas, Columnas, Muebles, M) :-
     matriz(Filas, Columnas, 0, M1),
     agregar_muebles(Filas, Columnas, Muebles, M1, M2),
@@ -130,6 +129,4 @@ agregar_muebles(_, _, [], M, M).
 agregar_muebles(Filas, Columnas, [mueble(Largo, Ancho, V)|T], M1, M2) :-
     agregar_mueble(Filas, Columnas, M1, Largo, Ancho, V, M3),
     agregar_muebles(Filas, Columnas, T, M3, M2).
-
-
 % FIN PREDICADO 2.3
