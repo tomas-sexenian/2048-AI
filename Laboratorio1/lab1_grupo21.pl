@@ -66,9 +66,7 @@ sustituir([ValorViejo|T], ValorViejo, ValorNuevo, 0, Cantidad, [ValorNuevo|L2]) 
 % COMIENZO PREDICADO 2.1
 insertar_mueble_posicion(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2) :-
     revisar_ceros(M1, NumFila, NumColumna, D1, D2),
-    insertar_filas(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2);
-    revisar_ceros(M1, NumFila, NumColumna, D2, D1),
-    insertar_filas(M1, NumFila, NumColumna, D2, D1, Etiqueta, M2).
+    insertar_filas(M1, NumFila, NumColumna, D1, D2, Etiqueta, M2).
 
 revisar_ceros(_, _, _, 0, _).
 revisar_ceros([H|T], NumFila, NumColumna, D1, D2) :-
@@ -114,9 +112,16 @@ insertar_filas([H|T], NumFila, NumColumna, D1, D2, Etiqueta, [H2|M2]) :-
 agregar_mueble(Filas, Columnas, M1, Largo, Ancho, Etiqueta, M2) :-
     Filas > 0,
     Columnas > 0,
-    between(0, Filas, F),
-    between(0, Columnas, C),
-    insertar_mueble_posicion(M1, F, C, Largo, Ancho, Etiqueta, M2).
+    (   % Try Width x Length orientation
+        between(0, Filas, F),
+        between(0, Columnas, C),
+        insertar_mueble_posicion(M1, F, C, Largo, Ancho, Etiqueta, M2)
+    ;
+        % Try Length x Width orientation
+        between(0, Filas, F),
+        between(0, Columnas, C),
+        insertar_mueble_posicion(M1, F, C, Ancho, Largo, Etiqueta, M2)
+    ).
 % FIN PREDICADO 2.2
 
 % COMIENZO PREDICADO 2.3
