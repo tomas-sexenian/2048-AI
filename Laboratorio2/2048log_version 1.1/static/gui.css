@@ -1,0 +1,211 @@
+@charset "UTF-8";
+/* CSS Document */
+
+body {
+	font-family: "Gill Sans", "Gill Sans MT", "Myriad Pro", "DejaVu Sans Condensed", Helvetica, Arial, "sans-serif";
+}
+#main { 
+			    position: absolute; 
+			    width: 490px; 
+			    height: 490px; 
+			    background-color: #fff; 
+			    left: 50%;
+			    top: 50%;
+			    margin-left: -245px;
+			    margin-top: -245px;
+			 }
+            #row { 
+			    position: relative; 
+			    width: 100%; 
+			    height: 110px; 
+			    font-size: 24px; 
+			    text-align: center; 
+			    left: 0px;
+			    top: 0px;
+				margin-top: 10px;
+			 }
+			 #field { 
+			    position: absolute; 
+			    width: 110px; 
+			    height: 110px;
+			    font-size: 24px; 
+			    text-align: center; 
+			    left: 0px;
+			    top: 0px;
+				margin-left: 10px;
+			 }
+			 #fieldnumber { 
+			    position: absolute; 
+			    width: 110px; 
+			    height: 30px;
+			    font-size: 30px; 
+			    text-align: center; 
+			    left: 0px;
+			    top: 50%;
+				margin-top: -15px;
+			 }
+			 #up { 
+			    position: absolute; 
+			    width: 100px; 
+			    height: 30px;
+			    font-size: 30px; 
+			    text-align: center; 
+			    left: 50%;
+			    top: 50%;
+				margin-left: -50px;
+				margin-top: -300px;
+			 }
+			 #down { 
+			    position: absolute; 
+			    width: 100px; 
+			    height: 30px;
+			    font-size: 30px; 
+			    text-align: center; 
+			    left: 50%;
+			    top: 50%;
+				margin-left: -50px;
+				margin-top: 280px;
+			 }
+			 #suggested_move { 
+			    position: absolute; 
+			    height: 30px; 
+			    font-size: 18px; 
+			    left: 20px;
+			    top: 350px;
+				/*margin-left: -150px;
+				margin-top: 340px;*/
+				min-width: 200px;
+			 }
+			#suggested_move a { 
+			    color: #666;
+			 }
+			 #right { 
+			    position: absolute; 
+			    width: 100px; 
+			    height: 30px;
+			    font-size: 30px; 
+			    text-align: center; 
+			    left: 50%;
+			    top: 50%;
+				margin-left: 280px;
+				margin-top: -10px;
+			 }
+			 #left { 
+			    position: absolute; 
+			    width: 100px; 
+			    height: 30px;
+			    font-size: 30px; 
+			    text-align: center; 
+			    left: 50%;
+			    top: 50%;
+				margin-left: -370px;
+				margin-top: -10px;
+			 }
+			#titulo { 
+			    position: absolute;
+				font-size: 40px;
+				left: 10px;
+				top: 0;
+				text-align: center;
+				background-color: bisque;
+				padding: 10px 20px;
+				border-radius: 0 0 10px 10px;
+				color: lightcoral;
+			 }
+			 #score { 
+			    position: absolute; 
+			    font-size: 35px;
+				background-color: #f0f0f0;
+				text-align: center;
+				left: 20px;
+				top: 150px;
+				min-width: 200px;
+				padding: 20px 0;
+				font-weight: bold;
+			 }
+			#reiniciar a { 
+			    position: absolute;
+				font-size: 16px;
+				text-align: center;
+				left: 20px;
+				top: 250px;
+				background-color: lightcoral;
+				padding: 10px 20px;
+				border-radius: 10px;
+				text-decoration: none;
+				color: #fff;
+			 }
+			#reiniciar a:hover { 
+				text-decoration: underline;
+			}
+			#subtitulo { 
+			    position: absolute;
+				font-size: 20px;
+				left: 20px;
+				top: 124px;
+				border-bottom: 2px solid #999;
+				min-width: 200px;
+				text-align: center;
+			 }
+			 #game_over { 
+			    position: absolute; 
+			    width: 360px; 
+			    height: 60px;
+			    font-size: 50px; 
+				background-color:lightgray;
+			    text-align: center; 
+			    left: 50%;
+			    top: 50%;
+			    margin-left: -180px;
+			    margin-top: -30px;
+			 }
+			#up a, #down a, #right a, #left a {
+  				color: #333;
+  				text-decoration: none;
+				padding: 10px 20px;
+			}
+			#up a:hover, #down a:hover, #right a:hover, #left a:hover {
+  				background-color: lightcoral;
+				padding: 10px 20px;
+				border-radius: 10px;
+				color: #fff;
+			}
+			 .c {
+			    background-color: #9a9ba7; 
+			 }
+			 .c2 {
+			 	background-color: #efe4db;
+			 }
+			 .c4 {
+			 	background-color: #eedfc9;
+			 }
+			 .c8 {
+			 	background-color: #f2b179;
+			 }
+			 .c16 {
+			 	background-color: #ec8d55;
+			 }
+			 .c32 {
+			 	background-color: #f77c60;
+			 }
+			 .c64 {
+			 	background-color: #eb5939;
+			 }
+			 .c128 {
+			 	background-color: #f2d04b;
+			 }
+			 .c256 {
+			 	background-color: #f2d04b;
+			 }
+			 .c512 {
+			 	background-color: #e3ba12;
+			 }
+			 .c1024 {
+			 	background-color: #e3ba12;
+			 }
+			 .c2048 {
+			 	background-color: #ecc500;
+			 }
+			 .c4096 {
+			 	background-color: #61d994;
+			 }

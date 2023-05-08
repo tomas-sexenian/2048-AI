@@ -1,0 +1,5 @@
+numpy
+pyparsing
+flask
+pyswip==0.2.9
+jinja2
