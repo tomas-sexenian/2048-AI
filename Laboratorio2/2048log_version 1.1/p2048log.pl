@@ -42,6 +42,11 @@ rotate_left(M, [H|T]) :-
     maplist(nth0(1), M, M1),
     rotate_left(M1, T).
 
+rotate_right(Board, BoardNew) :-
+    rotate_left(Board, Board1),
+    rotate_left(Board1, Board2),
+    rotate_left(Board2, BoardNew).
+
 % The movementT predicate applies a move to the board and calculates the new score
 movementT(Board, left, BoardNew, ScoreGen) :-
     maplist(shift_left, Board, Board1),
