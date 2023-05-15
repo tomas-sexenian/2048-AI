@@ -1,93 +1,89 @@
+% Base case: an empty list remains the same
+shift_left([], []).
 
-% movimientoT(+Tablero,+Direccion,-TableroNew,-ScoreGen): toma el tablero y mueve las piezas hacia la dirección correspondiente
-movimientoT(Tablero,Dir,TableroNew,ScoreGen):-
+% Case with a leading zero: shift the rest of the list and append a zero at the end
+shift_left([0|T], SL) :-
+    shift_left(T, SL1),
+    append(SL1, [0], SL).
 
-% mejor_movimiento(+Tablero,+NivelMiniMax,+Estrategia,-Jugada): devuelve la mejor jugada posible, a partir de un tablero y una estrategia
+% Case with a leading non-zero number followed by a zero: swap the number and the zero and shift the rest
+shift_left([H1,0|T], SL) :-
+    H1 \= 0,
+    shift_left([H1|T], SL1),
+    append([0], SL1, SL).
 
-% mejor_movimiento(Tablero,Nivel_minimax,Estrategia,Jugada):-
+% Case with a leading non-zero number followed by another number: leave the first number and shift the rest
+shift_left([H1,H2|T], SL) :-
+    H1 \= 0,
+    H2 \= 0,
+    shift_left([H2|T], SL1),
+    append([H1], SL1, SL).
 
-% As of below, everything is GPT-4 generated
+% Case with a leading non-zero number and no following number: leave the number
+shift_left([H], [H]).
 
-% movementT(+Board, +Direction, -BoardNew, -ScoreGen)
-movementT(Board, Direction, BoardNew, ScoreGen) :-
-    rotate_board(Direction, Board, RotatedBoard),
-    move_rows(RotatedBoard, MovedBoard, ScoreGen),
-    rotate_board_back(Direction, MovedBoard, BoardNew).
+% The merge_left predicate merges adjacent equal numbers in a list
+merge_left([], []).
+merge_left([H], [H]).
+merge_left([H1, H2 | T], ML) :-
+    H1 = H2,
+    NewH is H1 + H2,
+    merge_left(T, ML1),
+    append([NewH], ML1, ML).
+merge_left([H1, H2 | T], ML) :-
+    H1 \= H2,
+    merge_left([H2 | T], ML1),
+    append([H1], ML1, ML).
 
-% Helper predicates to rotate the board depending on the direction
-rotate_board(up, Board, Board).
-rotate_board(down, Board, RotatedBoard) :- rotate_board_180(Board, RotatedBoard).
-rotate_board(left, Board, RotatedBoard) :- transpose(Board, RotatedBoard).
-rotate_board(right, Board, RotatedBoard) :- transpose(Board, Transposed), rotate_board_180(Transposed, RotatedBoard).
+% The rotate_left predicate rotates a 2D list 90 degrees to the left
+rotate_left([[]|_], []).
+rotate_left(M, [H|T]) :-
+    maplist(nth1(1), M, H),
+    maplist(nth0(1), M, M1),
+    rotate_left(M1, T).
 
-rotate_board_back(up, Board, Board).
-rotate_board_back(down, Board, RotatedBoard) :- rotate_board_180(Board, RotatedBoard).
-rotate_board_back(left, Board, RotatedBoard) :- transpose(Board, RotatedBoard).
-rotate_board_back(right, Board, RotatedBoard) :- rotate_board_180(Board, Rotated), transpose(Rotated, RotatedBoard).
+% The movementT predicate applies a move to the board and calculates the new score
+movementT(Board, left, BoardNew, ScoreGen) :-
+    maplist(shift_left, Board, Board1),
+    maplist(merge_left, Board1, BoardNew),
+    score(Board, BoardNew, ScoreGen).
 
-% Helper predicates to rotate the board 180 degrees
-rotate_board_180(Board, RotatedBoard) :-
-    reverse(Board, Reversed),
-    maplist(reverse, Reversed, RotatedBoard).
+movementT(Board, right, BoardNew, ScoreGen) :-
+    maplist(reverse, Board, BoardRev),
+    maplist(shift_left, BoardRev, Board1Rev),
+    maplist(merge_left, Board1Rev, Board2Rev),
+    maplist(shift_left, Board2Rev, Board3Rev),
+    maplist(reverse, Board3Rev, BoardNew),
+    score(Board, BoardNew, ScoreGen).
 
-% Helper predicate to move rows to the left and combine tiles
-move_rows(Board, MovedBoard, ScoreGen) :-
-    maplist(move_row, Board, MovedBoard, Scores),
-    sum_list(Scores, ScoreGen).
+movementT(Board, up, BoardNew, ScoreGen) :-
+    rotate_left(Board, BoardRot),
+    maplist(shift_left, BoardRot, Board1Rot),
+    maplist(merge_left, Board1Rot, Board2Rot),
+    maplist(shift_left, Board2Rot, Board3Rot),
+    rotate_right(Board3Rot, BoardNew),
+    score(Board, BoardNew, ScoreGen).
 
-move_row(Row, NewRow, Score) :-
-    compress(Row, Compressed, 0, Score),
-    length(Compressed, Len),
-    NewRowSize is 4 - Len,
-    length(NewRow, 4),
-    append(Compressed, [- | Zeros], NewRow),
-    length(Zeros, NewRowSize).
+movementT(Board, down, BoardNew, ScoreGen) :-
+    rotate_right(Board, BoardRot),
+    maplist(shift_left, BoardRot, Board1Rot),
+    maplist(merge_left, Board1Rot, Board2Rot),
+    maplist(shift_left, Board2Rot, Board3Rot),
+    rotate_left(Board3Rot, BoardNew),
+    score(Board, BoardNew, ScoreGen).
 
-% Helper predicate to combine and move tiles to the left
-compress([], [], Score, Score).
-compress([X, X | T], [X2 | R], ScoreAcc, Score) :-
-    !,
-    X2 is X * 2,
-    NewScoreAcc is ScoreAcc + X2,
-    compress(T, R, NewScoreAcc, Score).
-compress([- | T], R, ScoreAcc, Score) :-
-    !,
-    compress(T, R, ScoreAcc, Score).
-compress([H | T], [H | R], ScoreAcc, Score) :-
-    compress(T, R, ScoreAcc, Score).
+% The 'random' strategy just picks a move at random
+mejor_movimiento(_, _, random, Move) :-
+    random_member(Move, [up, down, left, right]).
 
-% mejor_movimiento(+Tablero, +NivelMiniMax, +Estrategia, -Jugada)
-mejor_movimiento(Board, _, random, Move) :-
-    random_move(Board, Move).
-
+% The 'dummy' strategy picks the move that results in the highest immediate score
 mejor_movimiento(Board, _, dummy, Move) :-
-    dummy_move(Board, Move).
+    findall(Score-Move, (member(Move, [up, down, left, right]), movementT(Board, Move, _, Score)), ScoresMoves),
+    keysort(ScoresMoves, SortedScoresMoves),
+    reverse(SortedScoresMoves, [_-Move|_]).
 
-mejor_movimiento(Board, NivelMiniMax, ia, Move) :-
-    ia_move(Board, NivelMiniMax, Move).
-
-% Implementing the random strategy
-random_move(Board, Move) :-
-    findall(M, valid_move(Board, M), ValidMoves),
-    length(ValidMoves, Len),
-    Len > 0,
-    random(0, Len, Index),
-    nth0(Index, ValidMoves, Move).
-
-% Implementing the dummy strategy
-dummy_move(Board, Move) :-
-    findall((M, S), (valid_move(Board, M), movementT(Board, M, _, S)), ValidMovesScores),
-    keysort(ValidMovesScores, SortedMovesScores),
-    reverse(SortedMovesScores, DescendingMovesScores),
-    DescendingMovesScores = [(Move, _Score) | _Rest].
-
-% Implementing the ia strategy
-ia_move(Board, NivelMiniMax, Move) :-
-    % Implement your custom IA strategy here using the NivelMiniMax parameter
-    % As an example, we will use the dummy strategy for now
-    dummy_move(Board, Move).
-
-% Helper predicate to check if a move is valid
-valid_move(Board, Move) :-
-    movementT(Board, Move, NewBoard, _),
-    Board \= NewBoard.
+% The 'ia' strategy uses the minimax algorithm to select the best move
+mejor_movimiento(Board, Depth, ia, Move) :-
+    findall(Score-Move, (member(Move, [up, down, left, right]), movementT(Board, Move, BoardNew, _), minimax(BoardNew, Depth, Score)), ScoresMoves),
+    keysort(ScoresMoves, SortedScoresMoves),
+    reverse(SortedScoresMoves, [_-Move|_]).
