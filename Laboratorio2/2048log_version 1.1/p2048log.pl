@@ -47,13 +47,13 @@ rotate_right(Board, BoardNew) :-
     rotate_left(Board1, Board2),
     rotate_left(Board2, BoardNew).
 
-% The movementT predicate applies a move to the board and calculates the new score
-movementT(Board, left, BoardNew, ScoreGen) :-
+% The movimientoT predicate applies a move to the board and calculates the new score
+movimientoT(Board, left, BoardNew, ScoreGen) :-
     maplist(shift_left, Board, Board1),
     maplist(merge_left, Board1, BoardNew),
     score(Board, BoardNew, ScoreGen).
 
-movementT(Board, right, BoardNew, ScoreGen) :-
+movimientoT(Board, right, BoardNew, ScoreGen) :-
     maplist(reverse, Board, BoardRev),
     maplist(shift_left, BoardRev, Board1Rev),
     maplist(merge_left, Board1Rev, Board2Rev),
@@ -61,7 +61,7 @@ movementT(Board, right, BoardNew, ScoreGen) :-
     maplist(reverse, Board3Rev, BoardNew),
     score(Board, BoardNew, ScoreGen).
 
-movementT(Board, up, BoardNew, ScoreGen) :-
+movimientoT(Board, up, BoardNew, ScoreGen) :-
     rotate_left(Board, BoardRot),
     maplist(shift_left, BoardRot, Board1Rot),
     maplist(merge_left, Board1Rot, Board2Rot),
@@ -69,7 +69,7 @@ movementT(Board, up, BoardNew, ScoreGen) :-
     rotate_right(Board3Rot, BoardNew),
     score(Board, BoardNew, ScoreGen).
 
-movementT(Board, down, BoardNew, ScoreGen) :-
+movimientoT(Board, down, BoardNew, ScoreGen) :-
     rotate_right(Board, BoardRot),
     maplist(shift_left, BoardRot, Board1Rot),
     maplist(merge_left, Board1Rot, Board2Rot),
@@ -83,12 +83,12 @@ mejor_movimiento(_, _, random, Move) :-
 
 % The 'dummy' strategy picks the move that results in the highest immediate score
 mejor_movimiento(Board, _, dummy, Move) :-
-    findall(Score-Move, (member(Move, [up, down, left, right]), movementT(Board, Move, _, Score)), ScoresMoves),
+    findall(Score-Move, (member(Move, [up, down, left, right]), movimientoT(Board, Move, _, Score)), ScoresMoves),
     keysort(ScoresMoves, SortedScoresMoves),
     reverse(SortedScoresMoves, [_-Move|_]).
 
 % The 'ia' strategy uses the minimax algorithm to select the best move
 mejor_movimiento(Board, Depth, ia, Move) :-
-    findall(Score-Move, (member(Move, [up, down, left, right]), movementT(Board, Move, BoardNew, _), minimax(BoardNew, Depth, Score)), ScoresMoves),
+    findall(Score-Move, (member(Move, [up, down, left, right]), movimientoT(Board, Move, BoardNew, _), minimax(BoardNew, Depth, Score)), ScoresMoves),
     keysort(ScoresMoves, SortedScoresMoves),
     reverse(SortedScoresMoves, [_-Move|_]).
