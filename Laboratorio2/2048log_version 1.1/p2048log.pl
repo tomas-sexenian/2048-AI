@@ -92,3 +92,24 @@ mejor_movimiento(Board, Depth, ia, Move) :-
     findall(Score-Move, (member(Move, [up, down, left, right]), movimientoT(Board, Move, BoardNew, _), minimax(BoardNew, Depth, Score)), ScoresMoves),
     keysort(ScoresMoves, SortedScoresMoves),
     reverse(SortedScoresMoves, [_-Move|_]).
+
+% COMIENZO PREDICADO PARA PASAR DE "m" A LISTA DE LISTAS
+
+% helper predicate to translate f predicate to a list
+f_to_list(f(A,B,C,D), List) :- 
+    translate(A, TA),
+    translate(B, TB),
+    translate(C, TC),
+    translate(D, TD),
+    List = [TA, TB, TC, TD].
+
+% translate "-" to 0 and keeps numbers as they are
+translate(-, 0).
+translate(X, X) :- number(X).
+
+% main predicate to convert m predicate to list of lists
+m_to_lists(M, Lists) :-
+    M =.. [_|Fs],
+    maplist(f_to_list, Fs, Lists).
+
+% FIN PREDICADO PARA PASAR DE "m" A LISTA DE LISTAS
