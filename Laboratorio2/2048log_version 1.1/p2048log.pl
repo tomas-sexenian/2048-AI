@@ -454,10 +454,50 @@ strategy(ia, Board, Move) :-
     max_member(MaxScore, Scores),
     member(MaxScore-Move, ScoresMoves).
 
-% evaluate board by summing all its tiles
+% evaluate board using a weight matrix, the highest tile value, the number of empty cells, and smoothness
 evaluate_board(Board, Score) :-
-    findall(Value, (arg(_, Board, Row), arg(_, Row, Cell), (integer(Cell) -> Value=Cell ; Value=0)), Values),
-    sum_list(Values, Score).
+    weights(Weights),
+    board_values(Board, Values),
+    maplist(product, Values, Weights, Products),
+    sum_list(Products, WeightedSum),
+    max_list(Values, Max),
+    count_empty_cells(Board, Empty),
+    measure_smoothness(Board, Smooth),
+    Score is WeightedSum + 10*Max + 5*Empty + 50*Smooth.
+
+% measure the smoothness of the board
+measure_smoothness(Board, Smooth) :-
+    findall(Diff, (arg(_, Board, Row), arg(_, Row, Cell1), arg(_, Row, Cell2), (integer(Cell1), integer(Cell2) -> Diff is 1/(1+abs(Cell1-Cell2)) ; Diff=1)), Diffs),
+    sum_list(Diffs, Smooth).
+
+% weights defines a weight matrix that favors positions in the top-right corner
+weights([4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1]).
+
+% product computes the product of two numbers
+product(X, Y, Z) :- Z is X*Y.
+
+% count the number of empty cells
+count_empty_cells(Board, Count) :-
+    findall(1, (arg(_, Board, Row), arg(_, Row, Cell), var(Cell)), Empties),
+    length(Empties, Count).
+
+% measure the monotonicity of the board
+measure_monotonicity(Board, Mono) :-
+    findall(Diff, (arg(_, Board, Row), arg(_, Row, Cell1), arg(_, Row, Cell2), (integer(Cell1), integer(Cell2) -> Diff is abs(Cell1-Cell2) ; Diff=0)), Diffs),
+    sum_list(Diffs, Mono).
+
+% board_values flattens the board to a list of values
+board_values(Board, Values) :-
+    findall(Value, 
+            (
+                arg(_, Board, Row), 
+                arg(_, Row, Cell), 
+                (integer(Cell) -> Value=Cell ; Value=0)
+            ), 
+            Values
+    ).
+
+
 
 % main predicate for choosing the best move
 mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
