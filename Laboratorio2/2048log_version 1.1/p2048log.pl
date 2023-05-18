@@ -426,39 +426,42 @@ moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
 	moveLeft(X,N).
 
 
-% The 'random' strategy just picks a move at random
-mejor_movimiento(_, _, random, Move) :-
-    random_member(Move, [up, down, left, right]).
+% list of possible moves
+moves([up, down, left, right]).
 
-% The 'dummy' strategy picks the move that results in the highest immediate score
-mejor_movimiento(Board, _, dummy, Move) :-
-    findall(Score-Move, (member(Move, [up, down, left, right]), movimientoT(Board, Move, _, Score)), ScoresMoves),
-    keysort(ScoresMoves, SortedScoresMoves),
-    reverse(SortedScoresMoves, [_-Move|_]).
+% valid_move checks if a move changes the board
+valid_move(Board, Move) :-
+    movimientoT(Board, Move, NewBoard, _),
+    Board \= NewBoard.
 
-% The 'ia' strategy uses the minimax algorithm to select the best move
-mejor_movimiento(Board, Depth, ia, Move) :-
-    findall(Score-Move, (member(Move, [up, down, left, right]), movimientoT(Board, Move, BoardNew, _), minimax(BoardNew, Depth, Score)), ScoresMoves),
-    keysort(ScoresMoves, SortedScoresMoves),
-    reverse(SortedScoresMoves, [_-Move|_]).
+% random strategy
+strategy(random, Board, Move) :-
+    moves(Moves),
+    random_member(Move, Moves),
+    valid_move(Board, Move).
 
-% COMIENZO PREDICADO PARA PASAR DE "m" A LISTA DE LISTAS
+% dummy strategy
+strategy(dummy, Board, Move) :-
+    moves(Moves),
+    findall(Score-Mv, (member(Mv, Moves), valid_move(Board, Mv), movimientoT(Board, Mv, _, Score)), ScoresMoves),
+    max_member(_-Move, ScoresMoves).
 
-% helper predicate to translate f predicate to a list
-f_to_list(f(A,B,C,D), List) :- 
-    translate(A, TA),
-    translate(B, TB),
-    translate(C, TC),
-    translate(D, TD),
-    List = [TA, TB, TC, TD].
+% ia strategy
+strategy(ia, Board, Move) :-
+    moves(Moves),
+    findall(Score-Mv, (member(Mv, Moves), valid_move(Board, Mv), movimientoT(Board, Mv, NewBoard, _), evaluate_board(NewBoard, Score)), ScoresMoves),
+    pairs_keys_values(ScoresMoves, Scores, _),
+    max_member(MaxScore, Scores),
+    member(MaxScore-Move, ScoresMoves).
 
-% translate "-" to 0 and keeps numbers as they are
-translate(-, 0).
-translate(X, X) :- number(X).
+% evaluate board by summing all its tiles
+evaluate_board(Board, Score) :-
+    findall(Value, (arg(_, Board, Row), arg(_, Row, Cell), (integer(Cell) -> Value=Cell ; Value=0)), Values),
+    sum_list(Values, Score).
 
-% main predicate to convert m predicate to list of lists
-m_to_lists(M, Lists) :-
-    M =.. [_|Fs],
-    maplist(f_to_list, Fs, Lists).
+% main predicate for choosing the best move
+mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
+    strategy(Estrategia, Tablero, Jugada),
+    !.
+mejor_movimiento(_, _, _, up).
 
-% FIN PREDICADO PARA PASAR DE "m" A LISTA DE LISTAS
