@@ -75,16 +75,31 @@ strategy(ia, Board, Move) :-
     max_member(MaxScore, Scores),
     member(MaxScore-Move, ScoresMoves).
 
-% evaluate board using a weight matrix, the highest tile value, the number of empty cells, and smoothness
+% Helper function to flatten the board
+flatten_board(Board, FlatBoard) :-
+    Board =.. [_|Rows],
+    maplist([f(A,B,C,D), [A,B,C,D]]>>true, Rows, Matrix),
+    append(Matrix, FlatBoard).
+
+% measure the smoothness of the board
+measure_smoothness(Board, Smooth) :-
+    flatten_board(Board, FlatBoard),
+    findall(Diff, (nth1(I, FlatBoard, Cell1), nth1(J, FlatBoard, Cell2), J is I+1, (integer(Cell1), integer(Cell2) -> (Cell1 =:= Cell2 -> Diff = 0 ; Diff is 1/(1+abs(Cell1-Cell2))) ; Diff=1)), Diffs),
+    sum_list(Diffs, Smooth).
+
+% edge scoring heuristic
+edge_score(Board, Score) :-
+    weights(WeightMatrix),
+    flatten_board(Board, FlatBoard),
+    pairs_keys_values(Pairs, FlatBoard, WeightMatrix),
+    findall(Product, (member(Pair, Pairs), (Pair=(-,_) -> Product=0 ; Pair=(V,W) -> Product is V*W)), Products),
+    sum_list(Products, Score).
+
+% board evaluation function
 evaluate_board(Board, Score) :-
-    weights(Weights),
-    board_values(Board, Values),
-    maplist(product, Values, Weights, Products),
-    sum_list(Products, WeightedSum),
-    max_list(Values, Max),
-    count_empty_cells(Board, Empty),
-    measure_smoothness(Board, Smooth),
-    Score is WeightedSum + 10*Max + 5*Empty + 50*Smooth.
+    measure_smoothness(Board, SmoothnessScore),
+    edge_score(Board, EdgeScore),
+    Score is SmoothnessScore + EdgeScore.
 
 % measure the smoothness of the board
 measure_smoothness(Board, Smooth) :-
@@ -92,7 +107,10 @@ measure_smoothness(Board, Smooth) :-
     sum_list(Diffs, Smooth).
 
 % weights defines a weight matrix that favors positions in the top-right corner
-weights([4,3,2,1,4,3,2,1,4,3,2,1,4,3,2,1]).
+weights([0.135759, 0.121925, 0.102812, 0.099937,
+         0.0997992,0.088848, 0.076711, 0.0724143,
+         0.060654, 0.0562579,0.037116, 0.0161889,
+         0.0125498,0.00992495,0.00575871,0.00335193]).
 
 % product computes the product of two numbers
 product(X, Y, Z) :- Z is X*Y.
@@ -106,17 +124,6 @@ count_empty_cells(Board, Count) :-
 measure_monotonicity(Board, Mono) :-
     findall(Diff, (arg(_, Board, Row), arg(_, Row, Cell1), arg(_, Row, Cell2), (integer(Cell1), integer(Cell2) -> Diff is abs(Cell1-Cell2) ; Diff=0)), Diffs),
     sum_list(Diffs, Mono).
-
-% board_values flattens the board to a list of values
-board_values(Board, Values) :-
-    findall(Value, 
-            (
-                arg(_, Board, Row), 
-                arg(_, Row, Cell), 
-                (integer(Cell) -> Value=Cell ; Value=0)
-            ), 
-            Values
-    ).
 
 % main predicate for choosing the best move
 mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
