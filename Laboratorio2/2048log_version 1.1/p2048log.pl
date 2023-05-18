@@ -504,3 +504,65 @@ moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
 	moverizquierda(X,N, ScoreGen).
 
 % Fin de predicado movimientoT
+
+% Messi
+
+% The state of the game is represented through a predicate called m of arity 4, 
+% where each parameter of m is a predicate called f of arity 4. 
+
+empty_board(m(f('-', '-', '-', '-'),
+              f('-', '-', '-', '-'),
+              f('-', '-', '-', '-'),
+              f('-', '-', '-', '-'))).
+
+% testPlayGame plays a game using mejor_movimiento and returns the final score and a flag indicating whether the game was won
+testPlayGame(Board, Score, Won, Strategy) :-
+    testPlayGame(Board, 0, Score, Won, Strategy).
+
+% Recursive helper function for testPlayGame
+testPlayGame(Board, CurrentScore, FinalScore, Won, Strategy) :-
+    (testGameFull(Board) -> FinalScore = CurrentScore, Won = false;
+    (mejor_movimiento(Board, _, Strategy, Move),
+    testMakeMove(Board, Move, NewBoard, Points),
+    NewScore is CurrentScore + Points,
+    (testGameWon(NewBoard) -> FinalScore = NewScore, Won = true;
+        testPlayGame(NewBoard, NewScore, FinalScore, Won, Strategy)))).
+
+% Dummy predicate to simulate making a move on the board. In a real implementation, 
+% it should update the board according to the move and calculate the points scored
+testMakeMove(Board, _, Board, 4). 
+
+% Dummy predicate to check if the game has been won (a 2048 tile has been reached)
+testGameWon(m(f(A, _, _, _),
+              f(_, B, _, _),
+              f(_, _, C, _),
+              f(_, _, _, D))) :- member('2048', [A, B, C, D]).
+
+% Dummy predicate to check if the game board is full
+testGameFull(m(f(A, B, C, D),
+               f(E, F, G, H),
+               f(I, J, K, L),
+               f(M, N, O, P))) :- \+ member('-', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
+
+% testGenerateTestData generates test data for the game
+testGenerateTestData :-
+    open('2048_test_data.txt', write, Stream),
+    testLoop(0, Stream, 'ia'),
+    close(Stream).
+
+% testLoop generates 1000 games
+testLoop(1000, _, _).
+testLoop(Counter, Stream, Strategy) :-
+    empty_board(Board),
+    testPlayGame(Board, Score, Won, Strategy),
+    write(Stream, Counter),
+    write(Stream, ' '),
+    write(Stream, Score),
+    write(Stream, ' '),
+    write(Stream, Won),
+    nl(Stream),
+    Counter1 is Counter + 1,
+    testLoop(Counter1, Stream, Strategy).
+
+
+
