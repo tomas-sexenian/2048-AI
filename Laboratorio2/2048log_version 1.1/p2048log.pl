@@ -47,385 +47,6 @@ rotate_right(Board, BoardNew) :-
     rotate_left(Board1, Board2),
     rotate_left(Board2, BoardNew).
 
-
-convertir_tablero([A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3, D4], m(f(A11, A22, A33, A44), f(B11, B22, B33, B44), f(C11, C22, C33, C44), f(D11, D22, D33, D44))):-
-    convertir_guion(A1,A11),
-    convertir_guion(A2,A22),
-    convertir_guion(A3,A33),
-    convertir_guion(A4,A44),
-    convertir_guion(B1,B11),
-    convertir_guion(B2,B22),
-    convertir_guion(B3,B33),
-    convertir_guion(B4,B44),
-    convertir_guion(C1,C11),
-    convertir_guion(C2,C22),
-    convertir_guion(C3,C33),
-    convertir_guion(C4,C44),
-    convertir_guion(D1,D11),
-    convertir_guion(D2,D22),
-    convertir_guion(D3,D33),
-    convertir_guion(D4,D44).
-
-convertir_guion(0, '-').
-convertir_guion(X, X).
-
-noMoreMoves(Board) :-
-	once(moveLeft(Board, X)),
-	equal(Board, X),
-	once(moveRight(Board, Y)),
-	equal(Board, Y),
-	once(moveUp(Board, Z)),
-	equal(Board,Z),
-	once(moveDown(Board, W)),
-	equal(Board,W).
-
-aux_left(Tablero, left, TableroNew, 0) :-
-    convertir(Tablero, Tnew),
-    moveLeft(Tnew, Tsol),
-    convertir_tablero(Tsol,TableroNew).
-
-% Predicado principal para el movimiento
-movimientoT(Tablero, left, TableroNew, 0) :-
-    \+noMoreMoves(Tablero),
-    once(aux_left(Tablero, left, TableroNew, 0)).
-
-aux_up(Tablero, up, TableroNew, 0) :-
-    convertir(Tablero, Tnew),
-    moveUp(Tnew, Tsol),
-    convertir_tablero(Tsol,TableroNew).
-
-movimientoT(Tablero, up, TableroNew, 0) :-
-    \+noMoreMoves(Tablero),
-    once(aux_up(Tablero, up, TableroNew, 0)).
-
-aux_right(Tablero, right, TableroNew, 0) :-
-    convertir(Tablero, Tnew),
-    moveRight(Tnew, Tsol),
-    convertir_tablero(Tsol,TableroNew).
-
-movimientoT(Tablero, right, TableroNew, 0) :-
-    \+noMoreMoves(Tablero),
-    once(aux_right(Tablero, right, TableroNew, 0)).
-
-aux_down(Tablero, down, TableroNew, 0) :-
-    convertir(Tablero, Tnew),
-    moveDown(Tnew, Tsol),
-    convertir_tablero(Tsol,TableroNew).
-
-movimientoT(Tablero, down, TableroNew, 0) :-
-    \+noMoreMoves(Tablero),
-    once(aux_down(Tablero, down, TableroNew, 0)).
-
-convertir(m(A, B, C, D), Lista) :-
-    convertir_fila(A, Lista1),
-    convertir_fila(B, Lista2),
-    convertir_fila(C, Lista3),
-    convertir_fila(D, Lista4),
-    append(Lista1, Lista2, Temp1),
-    append(Temp1, Lista3, Temp2),
-    append(Temp2, Lista4, Lista).
-
-convertir_fila(f(A, B, C, D), [A1, B1, C1, D1]):-
-    remplazar_vacios(A,A1),
-    remplazar_vacios(B,B1),
-    remplazar_vacios(C,C1),
-    remplazar_vacios(D,D1).
-    
-remplazar_vacios('-', 0).
-remplazar_vacios(X, X).
-
-% checks if two lists are equal
-equal([],[]).
-equal([H1|T1],[H2|T2]) :-
-	H1 == H2,
-	equal(T1,T2).
-
-% rotate the board to the right
-rotateRight([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[E1,E2,E3,E4,F1,F2,F3,F4,G1,G2,G3,G4,H1,H2,H3,H4]) :-
-	E1 is D1,
-	E2 is C1,
-	E3 is B1,
-	E4 is A1,
-	F1 is D2,
-	F2 is C2,
-	F3 is B2,
-	F4 is A2,
-	G1 is D3,
-	G2 is C3,
-	G3 is B3,
-	G4 is A3,
-	H1 is D4,
-	H2 is C4,
-	H3 is B4,
-	H4 is A4.
-
-% rotate the board to the left
-rotateLeft([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[E1,E2,E3,E4,F1,F2,F3,F4,G1,G2,G3,G4,H1,H2,H3,H4]) :-
-	E1 is A4,
-	E2 is B4,
-	E3 is C4,
-	E4 is D4,
-	F1 is A3,
-	F2 is B3,
-	F3 is C3,
-	F4 is D3,
-	G1 is A2,
-	G2 is B2,
-	G3 is C2,
-	G4 is D2,
-	H1 is A1,
-	H2 is B1,
-	H3 is C1,
-	H4 is D1.
-
-% only moveLeft is actually implemented. Every other move just rotates
-% the board first and then uses moveLeft.
-moveUp(Board, NewBoard):-
-	rotateLeft(Board, Temp1),
-	moveLeft(Temp1, Temp2),
-	rotateRight(Temp2, NewBoard).
-
-moveDown(Board, NewBoard):-
-	rotateRight(Board, Temp1),
-	moveLeft(Temp1, Temp2),
-	rotateLeft(Temp2, NewBoard).
-
-moveRight(Board, NewBoard):-
-	rotateLeft(Board, Temp1),
-	rotateLeft(Temp1, Temp2),
-	moveLeft(Temp2, Temp3),
-	rotateRight(Temp3, Temp4),
-	rotateRight(Temp4, NewBoard).
-
-moveLeft([], []).
-% X|X|X|X -> 2X|2X|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X3 \= 0,
-	X1 == X2,
-	X3 == X4,
-	N1 is X1 + X2,
-	N2 is X3 + X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X, N).
-% X|X|X|Y -> 2X|X|Y|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X1 == X2,
-	X2 == X3,
-	N1 is X1 + X2,
-	N2 is X3,
-	N3 is X4,
-	N4 is 0,
-	moveLeft(X,N).
-% X|X|Y|Z -> 2X|Y|Z|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X1 == X2,
-	X3 \= 0,
-	N1 is X1 + X2,
-	N2 is X3,
-	N3 is X4,
-	N4 is 0,
-	moveLeft(X,N).
-% X|Y|Z|Z -> X|Y|2Z|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 \= 0,
-	X1 \= X2,
-	X2 \= X3,
-	X3 == X4,
-	N1 is X1,
-	N2 is X2,
-	N3 is X3 + X4,
-	N4 is 0,
-	moveLeft(X,N).
-% X|Y|Y|Z -> X|2Y|Z|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 \= 0,
-	X2 == X3,
-	N1 is X1,
-	N2 is X2 + X3,
-	N3 is X4,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|0|0|X -> X|0|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X2 == 0,
-	X3 == 0,
-	N1 is X4,
-	N2 is 0,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|0|X|X -> 2X|0|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X2 == 0,
-	X3 == X4,
-	N1 is X3 + X4,
-	N2 is 0,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|0|X|Y -> X|Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X2 == 0,
-	N1 is X3,
-	N2 is X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|X|0|X -> 2X|0|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X3 == 0,
-	X2 == X4,
-	N1 is X2 + X4,
-	N2 is 0,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|X|0|Y -> X|Y|0|)
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X3 == 0,
-	N1 is X2,
-	N2 is X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|X|X|Y -> 2X|Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X2 == X3,
-	N1 is X2 + X3,
-	N2 is X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|X|Y|Z -> X|Y|Z|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X2 \= 0,
-	X3 \= 0,
-	X2 \= X3,
-	X3 \= X4,
-	N1 is X2,
-	N2 is X3,
-	N3 is X4,
-	N4 is 0,
-	moveLeft(X,N).
-% 0|X|Y|Y -> X|2Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 == 0,
-	X2 \= 0,
-	X3 == X4,
-	N1 is X2,
-	N2 is X3 + X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|0|Y|Y -> X|2Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 == 0,
-	X3 == X4,
-	N1 is X1,
-	N2 is X3 + X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|0|X|Y -> 2X|Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 == 0,
-	X1 == X3,
-	N1 is X1 + X3,
-	N2 is X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|0|Y|Z -> X|Y|Z|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 == 0,
-	X3 \= 0,
-	N1 is X1,
-	N2 is X3,
-	N3 is X4,
-	N4 is 0,
-	moveLeft(X,N).
-% X|0|0|X -> 2X|0|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 == 0,
-	X3 == 0,
-	X1 == X4,
-	N1 is X1 + X4,
-	N2 is 0,
-	N3 is 0,
-	N4 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|0|0|Y -> X|Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 == 0,
-	X3 == 0,
-	N1 is X1,
-	N2 is X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|X|0|Y -> 2X|Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X1 == X2,
-	X3 == 0,
-	N1 is X1 + X2,
-	N2 is X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|Y|0|Y -> X|2Y|0|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 \= 0,
-	X1 \= X2,
-	X3 == 0,
-	X2 == X4,
-	N1 is X1,
-	N2 is X2 + X4,
-	N3 is 0,
-	N4 is 0,
-	moveLeft(X,N).
-% X|Y|0|Z -> X|Y|Z|0
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 \= 0,
-	X3 == 0,
-	N1 is X1,
-	N2 is X2,
-	N3 is X4,
-	N4 is 0,
-	moveLeft(X,N).
-% X|Y|Z|W -> X|Y|Z|W
-moveLeft([X1,X2,X3,X4|X], [N1,N2,N3,N4|N]) :-
-	X1 \= 0,
-	X2 \= 0,
-	X3 \= 0,
-	N1 is X1,
-	N2 is X2,
-	N3 is X3,
-	N4 is X4,
-	moveLeft(X,N).
-
-
 % list of possible moves
 moves([up, down, left, right]).
 
@@ -497,11 +118,382 @@ board_values(Board, Values) :-
             Values
     ).
 
-
-
 % main predicate for choosing the best move
 mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
     strategy(Estrategia, Tablero, Jugada),
     !.
 mejor_movimiento(_, _, _, up).
 
+% Inicio de predicado movimientoT
+movimientoT(Tablero, left, TableroNew, ScoreGen) :-
+    once(aux_left(Tablero, left, TableroNew, ScoreGen)).
+
+movimientoT(Tablero, up, TableroNew, ScoreGen) :-
+    once(aux_up(Tablero, up, TableroNew, ScoreGen)).
+
+movimientoT(Tablero, right, TableroNew, ScoreGen) :-
+    once(aux_right(Tablero, right, TableroNew, ScoreGen)).
+
+movimientoT(Tablero, down, TableroNew, ScoreGen) :-
+    once(aux_down(Tablero, down, TableroNew, ScoreGen)).
+
+aux_up(Tablero, up, TableroNew, ScoreGen) :-
+    tolist(Tablero, Tnew),
+    moverArriba(Tnew, Tsol, ScoreGen),
+    reconstruir_tablero(Tsol,TableroNew).
+
+aux_left(Tablero, left, TableroNew, ScoreGen) :-
+    tolist(Tablero, Tnew),
+    moverizquierda(Tnew, Tsol, ScoreGen),
+    reconstruir_tablero(Tsol,TableroNew).
+
+aux_right(Tablero, right, TableroNew, ScoreGen) :-
+    tolist(Tablero, Tnew),
+    moverderecha(Tnew, Tsol, ScoreGen),
+    reconstruir_tablero(Tsol,TableroNew).
+
+aux_down(Tablero, down, TableroNew, ScoreGen) :-
+    tolist(Tablero, Tnew),
+    moverabajo(Tnew, Tsol, ScoreGen),
+    reconstruir_tablero(Tsol,TableroNew).
+
+reconstruir_tablero([A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3, D4], 
+                  Tablero):-
+    TermA =.. [f, A1, A2, A3, A4],
+    TermB =.. [f, B1, B2, B3, B4],
+    TermC =.. [f, C1, C2, C3, C4],
+    TermD =.. [f, D1, D2, D3, D4],
+    Tablero =.. [m, TermA, TermB, TermC, TermD].
+
+tolist(Tablero, Lista) :-
+    Tablero =.. [ _, A1, A2, A3, A4],
+    A1 =.. [_ | Args1],
+    A2 =.. [_ | Args2],
+    A3 =.. [_ | Args3],
+    A4 =.. [_ | Args4],
+    append(Args1, Args2, Args12),
+    append(Args12, Args3, Args123),
+    append(Args123, Args4, Lista).
+    
+% Rotar el tablero hacia la derecha
+rotartableroder([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
+            [E1,E2,E3,E4,F1,F2,F3,F4,G1,G2,G3,G4,H1,H2,H3,H4]) :-
+	E1 = D1,
+	E2 = C1,
+	E3 = B1,
+	E4 = A1,
+	F1 = D2,
+	F2 = C2,
+	F3 = B2,
+	F4 = A2,
+	G1 = D3,
+	G2 = C3,
+	G3 = B3,
+	G4 = A3,
+	H1 = D4,
+	H2 = C4,
+	H3 = B4,
+	H4 = A4.
+
+% Rotar el tablero hacia la izquierda
+rotartableroizq([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
+           [E1,E2,E3,E4,F1,F2,F3,F4,G1,G2,G3,G4,H1,H2,H3,H4]) :-
+	E1 = A4,
+	E2 = B4,
+	E3 = C4,
+	E4 = D4,
+	F1 = A3,
+	F2 = B3,
+	F3 = C3,
+	F4 = D3,
+	G1 = A2,
+	G2 = B2,
+	G3 = C2,
+	G4 = D2,
+	H1 = A1,
+	H2 = B1,
+	H3 = C1,
+	H4 = D1.
+
+moverArriba(Tablero, TableroNew, ScoreGen):-
+	rotartableroizq(Tablero, Temp1),
+	moverizquierda(Temp1, Temp2, ScoreGen),
+	rotartableroder(Temp2, TableroNew).
+
+moverabajo(Tablero, TableroNew, ScoreGen):-
+	rotartableroder(Tablero, Temp1),
+	moverizquierda(Temp1, Temp2, ScoreGen),
+	rotartableroizq(Temp2, TableroNew).
+
+moverderecha(Tablero, TableroNew, ScoreGen):-
+	rotartableroizq(Tablero, Temp1),
+	rotartableroizq(Temp1, Temp2),
+	moverizquierda(Temp2, Temp3, ScoreGen),
+	rotartableroder(Temp3, Temp4),
+	rotartableroder(Temp4, TableroNew).
+
+moverizquierda([], [], 0).
+
+% caso: 2|2|2|2 -> 4|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X3 \= '-',
+	X1 == X2,
+	X3 == X4,
+	N1 is X1 + X2,
+	N2 is X3 + X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X, N, Acc_ScoreGen),
+    ScoreGen is N1 + N2 + Acc_ScoreGen.
+
+% caso: 2|2|2|4 -> 4|2|4|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X1 == X2,
+	X2 == X3,
+	N1 is X1 + X2,
+	N2 = X3,
+	N3 = X4,
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N1 + Acc_ScoreGen.
+
+% caso: 2|2|4|8 -> 4|4|8|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X1 == X2,
+	X3 \= '-',
+	N1 is X1 + X2,
+	N2 = X3,
+	N3 = X4,
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N1 + Acc_ScoreGen.
+
+% caso: 2|4|8|8 -> 2|4|16|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 \= '-',
+	X1 \= X2,
+	X2 \= X3,
+	X3 == X4,
+	N1 = X1,
+	N2 = X2,
+    (X3 == '-' ->  (N3 = X3, Aux_ScoreGen = 0); (N3 is X3 + X4, Aux_ScoreGen = N3)),
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is Aux_ScoreGen + Acc_ScoreGen.
+
+% caso: 2|4|4|8 -> 2|8|8|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 \= '-',
+	X2 == X3,
+	N1 = X1,
+	N2 is X2 + X3,
+	N3 = X4,
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N2 + Acc_ScoreGen.
+
+% caso: -|-|-|2 -> 2|-|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X2 == '-',
+	X3 == '-',
+	N1 = X4,
+	N2 = '-',
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: -|-|2|2 -> 4|-|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X2 == '-',
+	X3 == X4,
+	(X3 == '-' ->  (N1 = X3, Aux_ScoreGen = 0); (N1 is X3 + X4, Aux_ScoreGen = N1)),
+	N2 = '-',
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is Aux_ScoreGen + Acc_ScoreGen.
+
+% caso: -|-|2|4 -> 2|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X2 == '-',
+	N1 = X3,
+	N2 = X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: -|2|-|2 -> 4|-|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X3 == '-',
+	X2 == X4,
+    (X2 == '-' ->  (N1 = X2, Aux_ScoreGen = 0); (N1 is X2 + X4, Aux_ScoreGen = N1)),
+	N2 = '-',
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is Aux_ScoreGen + Acc_ScoreGen.
+
+% caso: -|2|-|4 -> 2|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X3 == '-',
+	N1 = X2,
+	N2 = X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: -|2|2|4 -> 4|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X2 == X3,
+    (X2 == '-' ->  (N1 = X2, Aux_ScoreGen = 0); (N1 is X2 + X3, Aux_ScoreGen = N1)),
+	N2 = X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is Aux_ScoreGen + Acc_ScoreGen.
+
+% caso: -|2|4|8 -> 2|4|8|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X2 \= '-',
+	X3 \= '-',
+	X2 \= X3,
+	X3 \= X4,
+	N1 = X2,
+	N2 = X3,
+	N3 = X4,
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: -|2|4|4 -> 2|8|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 == '-',
+	X2 \= '-',
+	X3 == X4,
+	N1 = X2,
+    (X3 == '-' ->  (N2 = X3, Aux_ScoreGen = 0); (N2 is X3 + X4, Aux_ScoreGen = N2)),
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is Aux_ScoreGen + Acc_ScoreGen.
+
+% caso: 2|-|4|4 -> 2|8|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 == '-',
+	X3 == X4,
+	N1 = X1,
+	(X3 == '-' ->  (N2 = X3, Aux_ScoreGen = 0); (N2 is X3 + X4, Aux_ScoreGen = N2)),
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is Aux_ScoreGen + Acc_ScoreGen.
+
+% caso: 2|-|2|4 -> 4|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 == '-',
+	X1 == X3,
+	N1 is X1 + X3,
+	N2 = X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N1 + Acc_ScoreGen.
+
+% caso: 2|-|4|8 -> 2|4|8|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 == '-',
+	X3 \= '-',
+	N1 = X1,
+	N2 = X3,
+	N3 = X4,
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: 2|-|-|2 -> 4|-|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 == '-',
+	X3 == '-',
+	X1 == X4,
+	N1 is X1 + X4,
+	N2 = '-',
+	N3 = '-',
+	N4 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N1 + Acc_ScoreGen.
+
+% caso: 2|-|-|4 -> 2|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 == '-',
+	X3 == '-',
+	N1 = X1,
+	N2 = X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: 2|2|-|4 -> 4|4|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X1 == X2,
+	X3 == '-',
+	N1 is X1 + X2,
+	N2 = X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N1 + Acc_ScoreGen.
+
+% caso: 2|4|-|4 -> 2|8|-|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 \= '-',
+	X1 \= X2,
+	X3 == '-',
+	X2 == X4,
+	N1 = X1,
+	N2 is X2 + X4,
+	N3 = '-',
+	N4 = '-',
+	moverizquierda(X,N, Acc_ScoreGen),
+    ScoreGen is N2 + Acc_ScoreGen.
+
+% caso: 2|4|-|8 -> 2|4|8|-
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 \= '-',
+	X3 == '-',
+	N1 = X1,
+	N2 = X2,
+	N3 = X4,
+	N4 = '-',
+	moverizquierda(X,N, ScoreGen).
+
+% caso: 2|4|8|16 -> 2|4|8|16
+moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
+	X1 \= '-',
+	X2 \= '-',
+	X3 \= '-',
+	N1 = X1,
+	N2 = X2,
+	N3 = X3,
+	N4 = X4,
+	moverizquierda(X,N, ScoreGen).
+
+% Fin de predicado movimientoT
