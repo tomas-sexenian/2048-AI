@@ -505,38 +505,43 @@ moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
 
 % Fin de predicado movimientoT
 
-% Messi
-
-% The state of the game is represented through a predicate called m of arity 4, 
-% where each parameter of m is a predicate called f of arity 4. 
-
-empty_board(m(f('-', '-', '-', '-'),
-              f('-', '-', '-', '-'),
-              f('-', '-', '-', '-'),
-              f('-', '-', '-', '-'))).
+%%%%%%%%%%%%%%%%%%%%%%%%% Test %%%%%%%%%%%%%%%%%%%%%%%%%
 
 % testPlayGame plays a game using mejor_movimiento and returns the final score and a flag indicating whether the game was won
-testPlayGame(Board, Score, Won, Strategy) :-
-    testPlayGame(Board, 0, Score, Won, Strategy).
+testPlayGame(Board, Won, Strategy) :-
+    (testGameFull(Board) -> 
+		Won = false;
+    	mejor_movimiento(Board, _, Strategy, Move),
+		movimientoT(Board, Move, NewBoard, _),
+    	(testGameWon(NewBoard) -> 
+			Won = true;
+			add_next_number(NewBoard, FullNewBoard),
+        	testPlayGame(FullNewBoard, Won, Strategy)
+		)
+	).
 
-% Recursive helper function for testPlayGame
-testPlayGame(Board, CurrentScore, FinalScore, Won, Strategy) :-
-    (testGameFull(Board) -> FinalScore = CurrentScore, Won = false;
-    (mejor_movimiento(Board, _, Strategy, Move),
-    testMakeMove(Board, Move, NewBoard, Points),
-    NewScore is CurrentScore + Points,
-    (testGameWon(NewBoard) -> FinalScore = NewScore, Won = true;
-        testPlayGame(NewBoard, NewScore, FinalScore, Won, Strategy)))).
-
-% Dummy predicate to simulate making a move on the board. In a real implementation, 
-% it should update the board according to the move and calculate the points scored
-testMakeMove(Board, _, Board, 4). 
+% Add a new number to the board
+add_next_number(Grid, NewGrid) :-
+    repeat,
+    random_between(1, 4, Row),
+    random_between(1, 4, Col),
+    arg(Row, Grid, RowTerm),
+    arg(Col, RowTerm, Cell),
+    (Cell == '-' -> 
+		random(X),
+		(X < 0.8 -> Number = 2 ; Number = 4),
+		setarg(Row, Grid, RowTerm),
+		setarg(Col, RowTerm, Number),
+		NewGrid = Grid,
+		!;
+		add_next_number(Grid, NewGrid)
+	).    
 
 % Dummy predicate to check if the game has been won (a 2048 tile has been reached)
-testGameWon(m(f(A, _, _, _),
-              f(_, B, _, _),
-              f(_, _, C, _),
-              f(_, _, _, D))) :- member('2048', [A, B, C, D]).
+testGameWon(m(f(A, B, C, D),
+			  f(E, F, G, H),
+			  f(I, J, K, L),
+			  f(M, N, O, P))) :- member('2048', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
 
 % Dummy predicate to check if the game board is full
 testGameFull(m(f(A, B, C, D),
@@ -544,25 +549,43 @@ testGameFull(m(f(A, B, C, D),
                f(I, J, K, L),
                f(M, N, O, P))) :- \+ member('-', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
 
-% testGenerateTestData generates test data for the game
-testGenerateTestData :-
-    open('2048_test_data.txt', write, Stream),
-    testLoop(0, Stream, 'ia'),
+empty_board(m(f('-', '-', '-', '-'),
+              f('-', '-', '-', '-'),
+              f('-', '-', '-', '-'),
+              f('-', '-', '-', '-'))).
+
+initial_board(Initial_Board) :-
+	empty_board(Empty_Board),
+	add_next_number(Empty_Board, Board),
+	add_next_number(Board, Initial_Board).
+
+% test/0 generates test data for the game
+test :- 
+	open('2048_test_data.txt', write, Stream),
+	test(1, Stream),
     close(Stream).
 
-% testLoop generates 1000 games
-testLoop(1000, _, _).
-testLoop(Counter, Stream, Strategy) :-
-    empty_board(Board),
-    testPlayGame(Board, Score, Won, Strategy),
+% test/1 generate 10 initial boards and plays 100 games for each board
+test(11, _).
+test(Counter, Stream) :-
+	initial_board(Board),
+	write(Stream,'Testing board: '),
+	write(Stream, Counter),
+	write(Stream, ' '),
+	write(Stream, Board),
+	nl(Stream),
+	testLoop(1, Stream, Board, 'ai'),
+	Counter1 is Counter + 1,
+	test(Counter1, Stream).
+
+% testLoop play 100 games with the same initial board and writes the results to a file
+testLoop(101, _, _, _).
+testLoop(Counter, Stream, Board, Strategy) :-
+    testPlayGame(Board, Won, Strategy),
     write(Stream, Counter),
     write(Stream, ' '),
-    write(Stream, Score),
-    write(Stream, ' '),
-    write(Stream, Won),
+	(Won -> write(Stream, 'Won') ; write(Stream, 'Lost')),
     nl(Stream),
     Counter1 is Counter + 1,
-    testLoop(Counter1, Stream, Strategy).
-
-
+    testLoop(Counter1, Stream, Board, Strategy).
 
