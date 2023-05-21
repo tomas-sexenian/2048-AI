@@ -132,17 +132,11 @@ mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
 mejor_movimiento(_, _, _, up).
 
 % Inicio de predicado movimientoT
-movimientoT(Tablero, left, TableroNew, ScoreGen) :-
-    once(aux_left(Tablero, left, TableroNew, ScoreGen)).
-
-movimientoT(Tablero, up, TableroNew, ScoreGen) :-
-    once(aux_up(Tablero, up, TableroNew, ScoreGen)).
-
-movimientoT(Tablero, right, TableroNew, ScoreGen) :-
-    once(aux_right(Tablero, right, TableroNew, ScoreGen)).
-
-movimientoT(Tablero, down, TableroNew, ScoreGen) :-
-    once(aux_down(Tablero, down, TableroNew, ScoreGen)).
+movimientoT(Tablero, Movimiento, TableroNew, ScoreGen) :-
+    once(aux_left(Tablero, Movimiento, TableroNew, ScoreGen));
+	once(aux_up(Tablero, Movimiento, TableroNew, ScoreGen));
+	once(aux_right(Tablero, Movimiento, TableroNew, ScoreGen));
+	once(aux_down(Tablero, Movimiento, TableroNew, ScoreGen)).
 
 aux_up(Tablero, up, TableroNew, ScoreGen) :-
     tolist(Tablero, Tnew),
@@ -223,21 +217,21 @@ rotartableroizq([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
 	H4 = D1.
 
 moverArriba(Tablero, TableroNew, ScoreGen):-
-	rotartableroizq(Tablero, Temp1),
-	moverizquierda(Temp1, Temp2, ScoreGen),
-	rotartableroder(Temp2, TableroNew).
+	rotartableroizq(Tablero, Tnew1),
+	moverizquierda(Tnew1, Tnew2, ScoreGen),
+	rotartableroder(Tnew2, TableroNew).
 
 moverabajo(Tablero, TableroNew, ScoreGen):-
-	rotartableroder(Tablero, Temp1),
-	moverizquierda(Temp1, Temp2, ScoreGen),
-	rotartableroizq(Temp2, TableroNew).
+	rotartableroder(Tablero, Tnew1),
+	moverizquierda(Tnew1, Tnew2, ScoreGen),
+	rotartableroizq(Tnew2, TableroNew).
 
 moverderecha(Tablero, TableroNew, ScoreGen):-
-	rotartableroizq(Tablero, Temp1),
-	rotartableroizq(Temp1, Temp2),
-	moverizquierda(Temp2, Temp3, ScoreGen),
-	rotartableroder(Temp3, Temp4),
-	rotartableroder(Temp4, TableroNew).
+	rotartableroizq(Tablero, Tnew1),
+	rotartableroizq(Tnew1, Tnew2),
+	moverizquierda(Tnew2, Tnew3, ScoreGen),
+	rotartableroder(Tnew3, Tnew4),
+	rotartableroder(Tnew4, TableroNew).
 
 moverizquierda([], [], 0).
 
