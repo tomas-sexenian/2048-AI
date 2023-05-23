@@ -1,79 +1,82 @@
-% Base case: an empty list remains the same
-shift_left([], []).
+% Import library(lists) to use max_list/2 and min_list/2
+:- use_module(library(lists)).
 
-% Case with a leading zero: shift the rest of the list and append a zero at the end
-shift_left([0|T], SL) :-
-    shift_left(T, SL1),
-    append(SL1, [0], SL).
+% List of possible moves
+moves(['up', 'down', 'left', 'right']).
 
-% Case with a leading non-zero number followed by a zero: swap the number and the zero and shift the rest
-shift_left([H1,0|T], SL) :-
-    H1 \= 0,
-    shift_left([H1|T], SL1),
-    append([0], SL1, SL).
+mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
+    Estrategia = ia,
+    moves(Moves),
+    findall([Move, NewBoard], (member(Move, Moves), movimientoT(Tablero, Move, NewBoard, _)), Successors),
+    (
+        Successors \= [], !, % Make sure that there are available moves
+        best(Successors, NivelMiniMax, _, Jugada)
+    ;
+        % If there are no successors, select 'up' as the default move
+        Jugada = up
+    ).
 
-% Case with a leading non-zero number followed by another number: leave the first number and shift the rest
-shift_left([H1,H2|T], SL) :-
-    H1 \= 0,
-    H2 \= 0,
-    shift_left([H2|T], SL1),
-    append([H1], SL1, SL).
+% Best move based on alpha-beta pruning
+best([Move], _, Move, Move).
+best([Move1 | Rest], Depth, Alpha, Best) :-
+    alphabeta(Move1, Depth, -inf, inf, Alpha1, _),
+    best(Rest, Depth, Alpha, Best1),
+    better_of(Move1, Alpha1, Best1, Alpha, Best).
 
-% Case with a leading non-zero number and no following number: leave the number
-shift_left([H], [H]).
+better_of(Move0, Alpha0, _, Alpha, Move) :-
+    Alpha0 > Alpha, !, Move = Move0.
+better_of(_, _, Move1, Alpha, Move) :-
+    Move = Move1.
 
-% The merge_left predicate merges adjacent equal numbers in a list
-merge_left([], []).
-merge_left([H], [H]).
-merge_left([H1, H2 | T], ML) :-
-    H1 = H2,
-    NewH is H1 + H2,
-    merge_left(T, ML1),
-    append([NewH], ML1, ML).
-merge_left([H1, H2 | T], ML) :-
-    H1 \= H2,
-    merge_left([H2 | T], ML1),
-    append([H1], ML1, ML).
+% Alpha-beta pruning
+alphabeta(Board, _, _, _, Score, _) :-
+    terminal(Board), !, heuristic(Board, Score).
+alphabeta(Board, Depth, Alpha, Beta, Score, BestSuccessor) :-
+    Depth > 0,
+    findall(NewBoard, (moves(Moves), member(Move, Moves), movimientoT(Board, Move, NewBoard, _)), Successors), 
+    Successors \= [], !, % Make sure that there are available moves
+    bounded_best(Successors, Depth, Alpha, Beta, Board, Score, BestSuccessor).
+alphabeta(Board, _, _, _, Score, _) :-
+    heuristic(Board, Score).
 
-% The rotate_left predicate rotates a 2D list 90 degrees to the left
-rotate_left([[]|_], []).
-rotate_left(M, [H|T]) :-
-    maplist(nth1(1), M, H),
-    maplist(nth0(1), M, M1),
-    rotate_left(M1, T).
+% Bounded best
+bounded_best([Board1 | Boards], Depth, Alpha, Beta, _, Best, BestBoard) :-
+    Alpha1 is -Beta, % max value
+    Beta1 is -Alpha, % min value
+    Depth1 is Depth - 1,
+    alphabeta(Board1, Depth1, Alpha1, Beta1, Val1, _),
+    Value is -Val1,
+    bounded_best(Boards, Depth, Alpha, Beta, Board1, Value, BestBoard, Best).
+bounded_best([], _, Alpha, _, Board, Alpha, Board).
 
-rotate_right(Board, BoardNew) :-
-    rotate_left(Board, Board1),
-    rotate_left(Board1, Board2),
-    rotate_left(Board2, BoardNew).
+bounded_best([Board1 | Boards], Depth, Alpha, Beta, Board, Value, BestBoard, Best) :-
+    prune(Board1, Boards, Depth, Alpha, Beta, Board, Value, BestBoard, Best).
 
-% list of possible moves
-moves([up, down, left, right]).
+% Pruning
+prune(Board, _, Depth, Alpha, Beta, _, Value, BestBoard, Best) :-
+    Value >= Beta, !, % Beta cut-off
+    Best = Board,
+    BestBoard = Value.
+prune(Board, Boards, Depth, Alpha, Beta, _, _, BestBoard, Best) :-
+    Alpha1 is max(Alpha, Value),
+    bounded_best(Boards, Depth, Alpha1, Beta, Board, BestBoard, Best).
 
-% valid_move checks if a move changes the board
-valid_move(Board, Move) :-
+% Check if the current state is a terminal state (i.e., no further moves can be made)
+terminal(Board) :-
+    \+ can_move(Board).
+
+% Check if a move can be made from the current state
+can_move(Board) :-
+    moves(Moves),
+    member(Move, Moves),
     movimientoT(Board, Move, NewBoard, _),
-    Board \= NewBoard.
+    \+ same_board(Board, NewBoard).
 
-% random strategy
-strategy(random, Board, Move) :-
-    moves(Moves),
-    random_member(Move, Moves),
-    valid_move(Board, Move).
-
-% dummy strategy
-strategy(dummy, Board, Move) :-
-    moves(Moves),
-    findall(Score-Mv, (member(Mv, Moves), valid_move(Board, Mv), movimientoT(Board, Mv, _, Score)), ScoresMoves),
-    max_member(_-Move, ScoresMoves).
-
-% ia strategy
-strategy(ia, Board, Move) :-
-    moves(Moves),
-    findall(Score-Mv, (member(Mv, Moves), valid_move(Board, Mv), movimientoT(Board, Mv, NewBoard, _), evaluate_board(NewBoard, Score)), ScoresMoves),
-    pairs_keys_values(ScoresMoves, Scores, _),
-    max_member(MaxScore, Scores),
-    member(MaxScore-Move, ScoresMoves).
+% Check if two board states are the same
+same_board(Board1, Board2) :-
+    flatten_board(Board1, FlatBoard1),
+    flatten_board(Board2, FlatBoard2),
+    FlatBoard1 == FlatBoard2.
 
 % Helper function to flatten the board
 flatten_board(Board, FlatBoard) :-
@@ -81,55 +84,40 @@ flatten_board(Board, FlatBoard) :-
     maplist([f(A,B,C,D), [A,B,C,D]]>>true, Rows, Matrix),
     append(Matrix, FlatBoard).
 
-% measure the smoothness of the board
-measure_smoothness(Board, Smooth) :-
-    flatten_board(Board, FlatBoard),
-    findall(Diff, (nth1(I, FlatBoard, Cell1), nth1(J, FlatBoard, Cell2), J is I+1, (integer(Cell1), integer(Cell2) -> (Cell1 =:= Cell2 -> Diff = 0 ; Diff is 1/(1+abs(Cell1-Cell2))) ; Diff=1)), Diffs),
-    sum_list(Diffs, Smooth).
+% Free Tiles heuristic
+free_tiles(m(R1,R2,R3,R4), FreeTiles) :-
+    findall(X, (member(R, [R1, R2, R3, R4]), arg(_, R, X), X = '-'), FreeCells),
+    length(FreeCells, FreeTiles).
 
-% edge scoring heuristic
-edge_score(Board, Score) :-
-    weights(WeightMatrix),
-    flatten_board(Board, FlatBoard),
-    pairs_keys_values(Pairs, FlatBoard, WeightMatrix),
-    findall(Product, (member(Pair, Pairs), (Pair=(-,_) -> Product=0 ; Pair=(V,W) -> Product is V*W)), Products),
-    sum_list(Products, Score).
+% Smoothness heuristic
+smoothness(m(R1,R2,R3,R4), Smoothness) :-
+    findall(Diff, (member(R, [R1, R2, R3, R4]), row_smoothness(R, Diff)), Diffs),
+    sum_list(Diffs, Smoothness).
 
-% board evaluation function
-evaluate_board(Board, Score) :-
-    measure_smoothness(Board, SmoothnessScore),
-    edge_score(Board, EdgeScore),
-    Score is SmoothnessScore + EdgeScore.
+row_smoothness(Row, Smoothness) :-
+    arg(1, Row, Cell1),
+    arg(2, Row, Cell2),
+    arg(3, Row, Cell3),
+    arg(4, Row, Cell4),
+    calc_diff(Cell1, Cell2, D1),
+    calc_diff(Cell2, Cell3, D2),
+    calc_diff(Cell3, Cell4, D3),
+    Smoothness is D1 + D2 + D3.
 
-% measure the smoothness of the board
-measure_smoothness(Board, Smooth) :-
-    findall(Diff, (arg(_, Board, Row), arg(_, Row, Cell1), arg(_, Row, Cell2), (integer(Cell1), integer(Cell2) -> Diff is 1/(1+abs(Cell1-Cell2)) ; Diff=1)), Diffs),
-    sum_list(Diffs, Smooth).
+calc_diff('-', _, 0).
+calc_diff(_, '-', 0).
+calc_diff(X, Y, Diff) :- number(X), number(Y), Diff is abs(X - Y).
 
-% weights defines a weight matrix that favors positions in the top-right corner
-weights([0.135759, 0.121925, 0.102812, 0.099937,
-         0.0997992,0.088848, 0.076711, 0.0724143,
-         0.060654, 0.0562579,0.037116, 0.0161889,
-         0.0125498,0.00992495,0.00575871,0.00335193]).
+% Heuristic calculation
+heuristic(Tablero, Score) :-
+    free_tiles(Tablero, F),
+    smoothness(Tablero, S),
+    Score is F + S.
 
-% product computes the product of two numbers
-product(X, Y, Z) :- Z is X*Y.
+mejor_movimiento(Tablero, NivelMiniMax, ia, Jugada) :-
+    alphabeta(Tablero, NivelMiniMax, -inf, inf, max, _, _, Jugada).
 
-% count the number of empty cells
-count_empty_cells(Board, Count) :-
-    findall(1, (arg(_, Board, Row), arg(_, Row, Cell), var(Cell)), Empties),
-    length(Empties, Count).
-
-% measure the monotonicity of the board
-measure_monotonicity(Board, Mono) :-
-    findall(Diff, (arg(_, Board, Row), arg(_, Row, Cell1), arg(_, Row, Cell2), (integer(Cell1), integer(Cell2) -> Diff is abs(Cell1-Cell2) ; Diff=0)), Diffs),
-    sum_list(Diffs, Mono).
-
-% main predicate for choosing the best move
-mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
-    strategy(Estrategia, Tablero, Jugada),
-    !.
-mejor_movimiento(_, _, _, up).
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 % Inicio de predicado movimientoT
 movimientoT(Tablero, Movimiento, TableroNew, ScoreGen) :-

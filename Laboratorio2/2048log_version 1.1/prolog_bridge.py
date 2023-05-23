@@ -48,9 +48,14 @@ def do_movimientoT(tablero:str,direction:str) -> str:
     
     # Invoca al predicado movimientoT
     prolog_query = f"movimientoT({tablero_prolog},{direction},TableroNew,ScoreGen)."
-    #print(prolog_query)
+    print ("messi")
+    print(prolog_query)
+    print ("messi")
   
     query_result = list(prolog.query(prolog_query, maxresult=1))
+    print ("m3$$si")
+    print(query_result)
+    print ("m3$$si")
   
 
     if (query_result == []):
