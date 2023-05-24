@@ -26,14 +26,13 @@ ia_move(Tablero, NivelMiniMax, Jugada) :-
 minimax(Tablero, 0, Score) :- !, evaluate(Tablero, Score).
 minimax(Tablero, NivelMiniMax, Score) :-
     NivelMiniMax > 0,
-    findall(NewScore, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), NewNivel is NivelMiniMax - 1, minimax(TableroNew, NewNivel, NewScore)), Scores),
-    min_list(Scores, MinScore),
-    max_list(Scores, MaxScore),
-    Score is MinScore + MaxScore / 2. % Combining both scores
+    NewNivel is NivelMiniMax - 1,
+    findall(ScoreNew, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NewNivel, ScoreNew)), Scores),
+    max_list(Scores, Score).
 
-% Basic board evaluation.
+% Simple evaluation based on the sum of tiles.
 evaluate(Tablero, Score) :-
-    findall(Value, (m(Row), arg(_, Row, f(_, Value, _, _))), Values),
+    findall(Value, (m(Row), member(Cell, Row), arg(_, Cell, Value), number(Value)), Values),
     sum_list(Values, Score).
 
 % Get head of a list.
