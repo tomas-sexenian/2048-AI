@@ -1,121 +1,46 @@
-% Import library(lists) to use max_list/2 and min_list/2
-:- use_module(library(lists)).
-
-% List of possible moves
-moves(['up', 'down', 'left', 'right']).
-
+% Main function.
 mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
-    Estrategia = ia,
-    moves(Moves),
-    findall([Move, NewBoard], (member(Move, Moves), movimientoT(Tablero, Move, NewBoard, _)), Successors),
-    (
-        Successors \= [], !, % Make sure that there are available moves
-        best(Successors, NivelMiniMax, _, Jugada)
-    ;
-        % If there are no successors, select 'up' as the default move
-        Jugada = up
+    ( Estrategia = random -> random_move(Tablero, Jugada)
+    ; Estrategia = dummy -> dummy_move(Tablero, Jugada)
+    ; Estrategia = ia -> ia_move(Tablero, NivelMiniMax, Jugada)
+    ; writeln('Invalid strategy'), fail
     ).
 
-% Best move based on alpha-beta pruning
-best([Move], _, Move, Move).
-best([Move1 | Rest], Depth, Alpha, Best) :-
-    alphabeta(Move1, Depth, -inf, inf, Alpha1, _),
-    best(Rest, Depth, Alpha, Best1),
-    better_of(Move1, Alpha1, Best1, Alpha, Best).
+% Random move strategy.
+random_move(Tablero, Jugada) :-
+    random_member(Jugada, [up, down, left, right]).
 
-better_of(Move0, Alpha0, _, Alpha, Move) :-
-    Alpha0 > Alpha, !, Move = Move0.
-better_of(_, _, Move1, Alpha, Move) :-
-    Move = Move1.
+% Dummy move strategy.
+dummy_move(Tablero, Jugada) :-
+    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, _, Score)), ScoreList),
+    sort(1, @>=, ScoreList, SortedScoreList),
+    (_-Jugada) = (head(SortedScoreList)).
 
-% Alpha-beta pruning
-alphabeta(Board, _, _, _, Score, _) :-
-    terminal(Board), !, heuristic(Board, Score).
-alphabeta(Board, Depth, Alpha, Beta, Score, BestSuccessor) :-
-    Depth > 0,
-    findall(NewBoard, (moves(Moves), member(Move, Moves), movimientoT(Board, Move, NewBoard, _)), Successors), 
-    Successors \= [], !, % Make sure that there are available moves
-    bounded_best(Successors, Depth, Alpha, Beta, Board, Score, BestSuccessor).
-alphabeta(Board, _, _, _, Score, _) :-
-    heuristic(Board, Score).
+% IA move strategy.
+ia_move(Tablero, NivelMiniMax, Jugada) :-
+    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NivelMiniMax, Score)), ScoreList),
+    sort(1, @>=, ScoreList, SortedScoreList),
+    (_-Jugada) = (head(SortedScoreList)).
 
-% Bounded best
-bounded_best([Board1 | Boards], Depth, Alpha, Beta, _, Best, BestBoard) :-
-    Alpha1 is -Beta, % max value
-    Beta1 is -Alpha, % min value
-    Depth1 is Depth - 1,
-    alphabeta(Board1, Depth1, Alpha1, Beta1, Val1, _),
-    Value is -Val1,
-    bounded_best(Boards, Depth, Alpha, Beta, Board1, Value, BestBoard, Best).
-bounded_best([], _, Alpha, _, Board, Alpha, Board).
+% Minimax algorithm.
+minimax(Tablero, 0, Score) :- !, evaluate(Tablero, Score).
+minimax(Tablero, NivelMiniMax, Score) :-
+    NivelMiniMax > 0,
+    findall(NewScore, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), NewNivel is NivelMiniMax - 1, minimax(TableroNew, NewNivel, NewScore)), Scores),
+    min_list(Scores, MinScore),
+    max_list(Scores, MaxScore),
+    Score is MinScore + MaxScore / 2. % Combining both scores
 
-bounded_best([Board1 | Boards], Depth, Alpha, Beta, Board, Value, BestBoard, Best) :-
-    prune(Board1, Boards, Depth, Alpha, Beta, Board, Value, BestBoard, Best).
+% Basic board evaluation.
+evaluate(Tablero, Score) :-
+    findall(Value, (m(Row), arg(_, Row, f(_, Value, _, _))), Values),
+    sum_list(Values, Score).
 
-% Pruning
-prune(Board, _, Depth, Alpha, Beta, _, Value, BestBoard, Best) :-
-    Value >= Beta, !, % Beta cut-off
-    Best = Board,
-    BestBoard = Value.
-prune(Board, Boards, Depth, Alpha, Beta, _, _, BestBoard, Best) :-
-    Alpha1 is max(Alpha, Value),
-    bounded_best(Boards, Depth, Alpha1, Beta, Board, BestBoard, Best).
+% Get head of a list.
+head([H|_], H).
 
-% Check if the current state is a terminal state (i.e., no further moves can be made)
-terminal(Board) :-
-    \+ can_move(Board).
-
-% Check if a move can be made from the current state
-can_move(Board) :-
-    moves(Moves),
-    member(Move, Moves),
-    movimientoT(Board, Move, NewBoard, _),
-    \+ same_board(Board, NewBoard).
-
-% Check if two board states are the same
-same_board(Board1, Board2) :-
-    flatten_board(Board1, FlatBoard1),
-    flatten_board(Board2, FlatBoard2),
-    FlatBoard1 == FlatBoard2.
-
-% Helper function to flatten the board
-flatten_board(Board, FlatBoard) :-
-    Board =.. [_|Rows],
-    maplist([f(A,B,C,D), [A,B,C,D]]>>true, Rows, Matrix),
-    append(Matrix, FlatBoard).
-
-% Free Tiles heuristic
-free_tiles(m(R1,R2,R3,R4), FreeTiles) :-
-    findall(X, (member(R, [R1, R2, R3, R4]), arg(_, R, X), X = '-'), FreeCells),
-    length(FreeCells, FreeTiles).
-
-% Smoothness heuristic
-smoothness(m(R1,R2,R3,R4), Smoothness) :-
-    findall(Diff, (member(R, [R1, R2, R3, R4]), row_smoothness(R, Diff)), Diffs),
-    sum_list(Diffs, Smoothness).
-
-row_smoothness(Row, Smoothness) :-
-    arg(1, Row, Cell1),
-    arg(2, Row, Cell2),
-    arg(3, Row, Cell3),
-    arg(4, Row, Cell4),
-    calc_diff(Cell1, Cell2, D1),
-    calc_diff(Cell2, Cell3, D2),
-    calc_diff(Cell3, Cell4, D3),
-    Smoothness is D1 + D2 + D3.
-
-calc_diff('-', _, 0).
-calc_diff(_, '-', 0).
-calc_diff(X, Y, Diff) :- number(X), number(Y), Diff is abs(X - Y).
-
-% Heuristic calculation
-heuristic(Tablero, Score) :-
-    free_tiles(Tablero, F),
-    smoothness(Tablero, S),
-    Score is F + S.
-
-mejor_movimiento(Tablero, NivelMiniMax, ia, Jugada) :-
-    alphabeta(Tablero, NivelMiniMax, -inf, inf, max, _, _, Jugada).
+% Board representation.
+m(f(_, _, _, _)).
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
