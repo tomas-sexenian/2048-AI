@@ -1,3 +1,7 @@
+pene
+
+%%%%%%%%%%%%%%%%%%%%%%%%% COMIENZO mejor_movimiento %%%%%%%%%%%%%%%%%%%%%%%%%
+
 mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
     Estrategia = random, random_move(Tablero, Jugada), !.
 mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
@@ -14,55 +18,100 @@ dummy_move(Tablero, Jugada) :-
     (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
 
 ia_move(Tablero, NivelMiniMax, Jugada) :-
-    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NivelMiniMax, Score), \+ Tablero = TableroNew), ScoreList),
+    findall(
+        Score-Jugada, 
+        (
+            member(Jugada, [up, down, left, right]), 
+            movimientoT(Tablero, Jugada, TableroNew, _), 
+            minimax(TableroNew, NivelMiniMax, -inf, inf, Score), 
+            \+ Tablero = TableroNew
+        ), 
+        ScoreList
+    ),
     (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
 
-% Minimax algorithm.
-minimax(Tablero, 0, Score) :- !, evaluate(Tablero, Score).
-minimax(Tablero, NivelMiniMax, Score) :-
+% Minimax algorithm with Alpha-Beta pruning.
+minimax(Tablero, 0, _, _, Score) :- !, evaluate(Tablero, Score).
+minimax(Tablero, NivelMiniMax, Alpha, Beta, Score) :-
     NivelMiniMax > 0,
     NewNivel is NivelMiniMax - 1,
-    findall(ScoreNew, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NewNivel, ScoreNew)), Scores),
-    max_list(Scores, Score).
+    findall(ScoreNew, 
+            (member(Jugada, [up, down, left, right]), 
+             movimientoT(Tablero, Jugada, TableroNew, _),
+             minimax(TableroNew, NewNivel, Alpha, Beta, ScoreNew), 
+             \+ Tablero = TableroNew), 
+             Scores),
+    (Scores = [] -> Score = -1 ; best_score(Scores, Alpha, Beta, NivelMiniMax, Score)).
+
+% Best score helper function.
+best_score([H|T], Alpha, Beta, Nivel, Best) :-
+    best_score(T, Alpha, Beta, H, Nivel, Best).
+best_score([], _, _, Best, _, Best).
+best_score([H|T], Alpha, Beta, CurrentBest, Nivel, Best) :-
+    update_bounds(Alpha, Beta, H, Nivel, NewAlpha, NewBeta),
+    (NewAlpha >= NewBeta -> Best = H ; best_score(T, NewAlpha, NewBeta, CurrentBest, Nivel, Best)).
+
+% Update bounds helper function.
+update_bounds(Alpha, Beta, Score, Nivel, NewAlpha, Beta) :-
+    Nivel mod 2 =:= 0, Score > Alpha, NewAlpha is Score, !.
+update_bounds(Alpha, Beta, Score, Nivel, Alpha, NewBeta) :-
+    Nivel mod 2 =:= 1, Score < Beta, NewBeta is Score, !.
+update_bounds(Alpha, Beta, _, _, Alpha, Beta).
 
 evaluate(m(F1, F2, F3, F4), Score) :-
-    % Extract all cell values.
-    findall(Value, (member(F, [F1, F2, F3, F4]), arg(_, F, Value)), Values),
-    % Calculate base score as sum of all tiles.
-    % Convert '-' symbols to 0 and sum all values for base score.
-	maplist(to_number, Values, NumericValues),
-	sum_list(NumericValues, BaseScore),
-    % Count empty cells.
-    count('-', Values, NumEmpty),
-    % Encourage having more empty cells.
-    EmptyScore is (NumEmpty + 1) * 10,
-    % Check for highest tile in the corners.
-    arg(1, F1, TopLeft),     arg(4, F1, TopRight),
-    arg(1, F4, BottomLeft),  arg(4, F4, BottomRight),
-    maplist(to_number, [TopLeft, TopRight, BottomLeft, BottomRight], CornerValues),
-    max_list(CornerValues, Highest),
-    HighestScore is Highest * 10,
-    % Total score is a combination of base score, empty cell score, and highest corner tile score.
-    Score is BaseScore + EmptyScore + HighestScore.
-    
-to_number('-', 0).
-to_number(N, N) :- number(N).
+    % Flatten the board to make it easier to work with
+    F1 = f(A1, B1, C1, D1), F2 = f(A2, B2, C2, D2), F3 = f(A3, B3, C3, D3), F4 = f(A4, B4, C4, D4),
+    append([A1, B1, C1, D1, A2, B2, C2, D2, A3, B3, C3, D3, A4, B4, C4, D4], Board),
+    % Compute the various heuristic scores based on the board
+    count_empty(Board, EmptyCellsScore),
+    sum_tiles(Board, TileValuesScore),
+    max_tile(Board, MaxTileScore),
+    calculate_monotonicity(Board, MonotonicityScore),
+    % Combine these scores using some formula to compute a final score for the board
+    Score is EmptyCellsScore * 256 + TileValuesScore + MaxTileScore * 16 + MonotonicityScore.
 
-count(_, [], 0).
-count(X, [X|T], N) :-
-    count(X, T, N2),
-    N is N2 + 1.
-count(X, [Y|T], N) :-
-    X \= Y,
-    count(X, T, N).
+count_empty(Board, EmptyCellsScore) :-
+    include(=(('-')), Board, EmptyCells),
+    length(EmptyCells, EmptyCellsScore).
 
-% Get head of a list.
-head([H|_], H).
+% sum_tiles/2 predicate
+sum_tiles(Board, TileValuesScore) :-
+    exclude(=('-'), Board, Tiles),
+    sum_list(Tiles, TileValuesScore).
+
+% max_tile/2 predicate
+max_tile(Board, MaxTileScore) :-
+    exclude(=('-'), Board, Tiles),
+    max_list(Tiles, MaxTileScore).
+
+% calculate_monotonicity/2 predicate
+calculate_monotonicity(m(F1, F2, F3, F4), MonotonicityScore) :-
+    calculate_row_monotonicity([F1, F2, F3, F4], RowScore),
+    transpose([F1, F2, F3, F4], [C1, C2, C3, C4]),
+    calculate_row_monotonicity([C1, C2, C3, C4], ColScore),
+    MonotonicityScore is RowScore + ColScore.
+
+% calculate_row_monotonicity/2 predicate
+calculate_row_monotonicity([], 0).
+calculate_row_monotonicity([Row|Rows], Score) :-
+    calculate_row_monotonicity(Rows, ScoreRest),
+    monotonicity(Row, RowScore),
+    Score is ScoreRest + RowScore.
+
+% monotonicity/2 predicate
+monotonicity([], 0).
+monotonicity([_], 0).
+monotonicity([X, Y|T], Score) :-
+    monotonicity([Y|T], ScoreRest),
+    ( X =< Y
+    -> Score is ScoreRest + 1
+    ; Score is ScoreRest - 1
+    ).
 
 % Board representation.
 m(f(_, _, _, _),f(_, _, _, _),f(_, _, _, _),f(_, _, _, _)).
 
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%%%%%%%%%%%%%%%%%%%%%%%%% FIN mejor_movimiento %%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Inicio de predicado movimientoT
 movimientoT(Tablero, Movimiento, TableroNew, ScoreGen) :-
