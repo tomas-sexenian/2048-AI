@@ -1,26 +1,21 @@
-% Main function.
 mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
-    ( Estrategia = random -> random_move(Tablero, Jugada)
-    ; Estrategia = dummy -> dummy_move(Tablero, Jugada)
-    ; Estrategia = ia -> ia_move(Tablero, NivelMiniMax, Jugada)
-    ; writeln('Invalid strategy'), fail
-    ).
+    Estrategia = random, random_move(Tablero, Jugada), !.
+mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
+    Estrategia = dummy, dummy_move(Tablero, Jugada), !.
+mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
+    Estrategia = ia, ia_move(Tablero, NivelMiniMax, Jugada).
 
-% Random move strategy.
 random_move(Tablero, Jugada) :-
-    random_member(Jugada, [up, down, left, right]).
+    findall(Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), \+ Tablero = TableroNew), Jugadas),
+    (Jugadas = [] -> Jugada = up ; random_member(Jugada, Jugadas)).
 
-% Dummy move strategy.
 dummy_move(Tablero, Jugada) :-
-    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, _, Score)), ScoreList),
-    sort(1, @>=, ScoreList, SortedScoreList),
-    (_-Jugada) = (head(SortedScoreList)).
+    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, Score), \+ Tablero = TableroNew), ScoreList),
+    (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
 
-% IA move strategy.
 ia_move(Tablero, NivelMiniMax, Jugada) :-
-    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NivelMiniMax, Score)), ScoreList),
-    sort(1, @>=, ScoreList, SortedScoreList),
-    (_-Jugada) = (head(SortedScoreList)).
+    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NivelMiniMax, Score), \+ Tablero = TableroNew), ScoreList),
+    (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
 
 % Minimax algorithm.
 minimax(Tablero, 0, Score) :- !, evaluate(Tablero, Score).
@@ -31,15 +26,15 @@ minimax(Tablero, NivelMiniMax, Score) :-
     max_list(Scores, Score).
 
 % Simple evaluation based on the sum of tiles.
-evaluate(Tablero, Score) :-
-    findall(Value, (m(Row), member(Cell, Row), arg(_, Cell, Value), number(Value)), Values),
+evaluate(m(F1, F2, F3, F4), Score) :-
+    findall(Value, (member(F, [F1, F2, F3, F4]), arg(_, F, Value), number(Value)), Values),
     sum_list(Values, Score).
 
 % Get head of a list.
 head([H|_], H).
 
 % Board representation.
-m(f(_, _, _, _)).
+m(f(_, _, _, _),f(_, _, _, _),f(_, _, _, _),f(_, _, _, _)).
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
