@@ -25,10 +25,36 @@ minimax(Tablero, NivelMiniMax, Score) :-
     findall(ScoreNew, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), minimax(TableroNew, NewNivel, ScoreNew)), Scores),
     max_list(Scores, Score).
 
-% Simple evaluation based on the sum of tiles.
 evaluate(m(F1, F2, F3, F4), Score) :-
-    findall(Value, (member(F, [F1, F2, F3, F4]), arg(_, F, Value), number(Value)), Values),
-    sum_list(Values, Score).
+    % Extract all cell values.
+    findall(Value, (member(F, [F1, F2, F3, F4]), arg(_, F, Value)), Values),
+    % Calculate base score as sum of all tiles.
+    % Convert '-' symbols to 0 and sum all values for base score.
+	maplist(to_number, Values, NumericValues),
+	sum_list(NumericValues, BaseScore),
+    % Count empty cells.
+    count('-', Values, NumEmpty),
+    % Encourage having more empty cells.
+    EmptyScore is (NumEmpty + 1) * 10,
+    % Check for highest tile in the corners.
+    arg(1, F1, TopLeft),     arg(4, F1, TopRight),
+    arg(1, F4, BottomLeft),  arg(4, F4, BottomRight),
+    maplist(to_number, [TopLeft, TopRight, BottomLeft, BottomRight], CornerValues),
+    max_list(CornerValues, Highest),
+    HighestScore is Highest * 10,
+    % Total score is a combination of base score, empty cell score, and highest corner tile score.
+    Score is BaseScore + EmptyScore + HighestScore.
+    
+to_number('-', 0).
+to_number(N, N) :- number(N).
+
+count(_, [], 0).
+count(X, [X|T], N) :-
+    count(X, T, N2),
+    N is N2 + 1.
+count(X, [Y|T], N) :-
+    X \= Y,
+    count(X, T, N).
 
 % Get head of a list.
 head([H|_], H).
