@@ -1,5 +1,3 @@
-pene
-
 %%%%%%%%%%%%%%%%%%%%%%%%% COMIENZO mejor_movimiento %%%%%%%%%%%%%%%%%%%%%%%%%
 
 mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
