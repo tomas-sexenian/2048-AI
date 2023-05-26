@@ -2,32 +2,38 @@ mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
     Estrategia = random, random_move(Tablero, Jugada), !.
 mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
     Estrategia = dummy, dummy_move(Tablero, Jugada), !.
-mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
-    Estrategia = ia, ia_move(Tablero, NivelMiniMax, Jugada).
+mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
+	writeln('acaaaaaaaaaa'),
+	writeln(Tablero),
+    Estrategia = ia,
+    ia_move(Tablero, 5, Jugada).
 
 random_move(Tablero, Jugada) :-
+	writeln('random_move'),
     findall(Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), \+ Tablero = TableroNew), Jugadas),
     (Jugadas = [] -> Jugada = up ; random_member(Jugada, Jugadas)).
 
 dummy_move(Tablero, Jugada) :-
+	writeln('dummy_move'),
     findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, Score), \+ Tablero = TableroNew), ScoreList),
     (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
 
-:- dynamic(boardScore/2).
-
 ia_move(Tablero, NivelMiniMax, Jugada) :-
+	writeln('ia_move'),
+	writeln(NivelMiniMax),
     tolist(Tablero, ListTablero),
 	boardScore(ListTablero, BScore),
-	asserta(boardScore(ListTablero, BScore)),
 	once(moverizquierda(ListTablero, LeftTablero, _)),
-	evaluate(ListTablero, LeftTablero, NivelMiniMax, ScoreL),
+	evaluate(ListTablero, LeftTablero, NivelMiniMax, ScoreL, BScore),
 	once(moverderecha(ListTablero, RightTablero, _)),
-	evaluate(ListTablero, RightTablero, NivelMiniMax, ScoreR),
+	evaluate(ListTablero, RightTablero, NivelMiniMax, ScoreR, BScore),
 	once(moverArriba(ListTablero, UpTablero, _)),
-	evaluate(ListTablero, UpTablero, NivelMiniMax, ScoreU),
+	evaluate(ListTablero, UpTablero, NivelMiniMax, ScoreU, BScore),
 	once(moverabajo(ListTablero, DownTablero, _)),
-	evaluate(ListTablero, DownTablero, NivelMiniMax, ScoreD),
-	selectMove(ScoreL, ScoreR, ScoreU, ScoreD, Jugada).
+	evaluate(ListTablero, DownTablero, NivelMiniMax, ScoreD, BScore),
+	selectMove(ScoreL, ScoreR, ScoreU, ScoreD, Jugada),
+    writeln(ScoreL),writeln(ScoreR),writeln(ScoreU),writeln(ScoreD),
+	writeln(Jugada).
 
 % checks if two lists are equal
 equal([],[]).
@@ -35,157 +41,157 @@ equal([H1|T1],[H2|T2]) :-
 	H1 == H2,
 	equal(T1,T2).
 
-count_empty(Board, EmptyCellsScore) :-
-    include(=(('-')), Board, EmptyCells),
-    length(EmptyCells, EmptyCellsScore).
-
-% sum_tiles/2 predicate
-sum_tiles(Board, TileValuesScore) :-
-    exclude(=('-'), Board, Tiles),
-    sum_list(Tiles, TileValuesScore).
-
-% max_tile/2 predicate
-max_tile(Board, MaxTileScore) :-
-    exclude(=('-'), Board, Tiles),
-    max_list(Tiles, MaxTileScore).
-
 % if the move is not possible, it gets a score of 0
-evaluate(Board, NewBoard, _, 0) :-
+evaluate(Board, NewBoard, _, 0, 0) :-
 	equal(Board, NewBoard).
 % this, along with the evalNext and evalMoves predicates search the game
 % space for the best move
-evaluate(_, Board, Level, Score) :-
+evaluate(_, Board, Level, Score, ScoreOld) :-
 	Level >= 0,
 	NewLevel is Level - 1,
-	boardScore(Board, BScore),
-	boardScore(_, MejorScoreActual),
-	(BScore >=  MejorScoreActual 
+	boardScore(Board, MejorScoreActual),
+	(MejorScoreActual >=  ScoreOld 
 	-> 
-	(asserta(boardScore(Board, BScore)),
-	evalNext(Board, 0, NewLevel, S0),
-	evalNext(Board, 1, NewLevel, S1),
-	evalNext(Board, 2, NewLevel, S2),
-	evalNext(Board, 3, NewLevel, S3),
-	evalNext(Board, 4, NewLevel, S4),
-	evalNext(Board, 5, NewLevel, S5),
-	evalNext(Board, 6, NewLevel, S6),
-	evalNext(Board, 7, NewLevel, S7),
-	evalNext(Board, 8, NewLevel, S8),
-	evalNext(Board, 9, NewLevel, S9),
-	evalNext(Board, 10, NewLevel, S10),
-	evalNext(Board, 11, NewLevel, S11),
-	evalNext(Board, 12, NewLevel, S12),
-	evalNext(Board, 13, NewLevel, S13),
-	evalNext(Board, 14, NewLevel, S14),
-	evalNext(Board, 15, NewLevel, S15),
-	Score is 10*BScore+S0+S1+S2+S3+S4+S5+S6+S7+S8+S9+S10+S11+S12+S13+S14+S15) 
+	(NewScoreOld = MejorScoreActual,
+    evalNext(Board, 0, NewLevel, S0, NewScoreOld),
+	evalNext(Board, 1, NewLevel, S1, NewScoreOld),
+	evalNext(Board, 2, NewLevel, S2, NewScoreOld),
+	evalNext(Board, 3, NewLevel, S3, NewScoreOld),
+	evalNext(Board, 4, NewLevel, S4, NewScoreOld),
+	evalNext(Board, 5, NewLevel, S5, NewScoreOld),
+	evalNext(Board, 6, NewLevel, S6, NewScoreOld),
+	evalNext(Board, 7, NewLevel, S7, NewScoreOld),
+	evalNext(Board, 8, NewLevel, S8, NewScoreOld),
+	evalNext(Board, 9, NewLevel, S9, NewScoreOld),
+	evalNext(Board, 10, NewLevel, S10, NewScoreOld),
+	evalNext(Board, 11, NewLevel, S11, NewScoreOld),
+	evalNext(Board, 12, NewLevel, S12, NewScoreOld),
+	evalNext(Board, 13, NewLevel, S13, NewScoreOld),
+	evalNext(Board, 14, NewLevel, S14, NewScoreOld),
+	evalNext(Board, 15, NewLevel, S15, NewScoreOld),
+	Score is 10*ScoreOld+S0+S1+S2+S3+S4+S5+S6+S7+S8+S9+S10+S11+S12+S13+S14+S15) 
 	;
 	fail).
 
-evalNext(['-',A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 0, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([2,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[4,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,'-',A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 1, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,4,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,'-',A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 2, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,2,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,A2,4,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,'-',B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 3, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,2,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,'-',B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 4, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,2,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,A4,4,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,'-',B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 5, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,A4,B1,4,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,'-',B4,C1,C2,C3,C4,D1,D2,D3,D4], 6, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,2,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,A4,B1,B2,4,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,'-',C1,C2,C3,C4,D1,D2,D3,D4], 7, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,2,C1,C2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,'-',C2,C3,C4,D1,D2,D3,D4], 8, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,2,C2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,4,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,'-',C3,C4,D1,D2,D3,D4], 9, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,2,C3,C4,D1,D2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,4,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,'-',C4,D1,D2,D3,D4], 10, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,2,C4,D1,D2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,4,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,'-',D1,D2,D3,D4], 11, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,2,D1,D2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,'-',D2,D3,D4], 12, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,2,D2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,4,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,'-',D3,D4], 13, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,4,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,'-',D4], 14, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,2,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,4,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,'-'], 15, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,2],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,4],NewLevel,Score).
-evalNext(_, _, _, 0).
+generar_numero(2) :-
+    random(X),
+    X < 0.8.
+generar_numero(4) :-
+    random(X),
+    X >= 0.8.
 
-evalMoves(B2, B4, Level, Score) :-
+evalNext(['-',A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 0, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([X,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,'-',A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 1, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,X,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,'-',A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 2, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,X,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,'-',B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 3, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,X,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,'-',B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 4, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,X,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,'-',B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 5, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,X,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,'-',B4,C1,C2,C3,C4,D1,D2,D3,D4], 6, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,X,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,'-',C1,C2,C3,C4,D1,D2,D3,D4], 7, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,X,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,'-',C2,C3,C4,D1,D2,D3,D4], 8, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,X,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,'-',C3,C4,D1,D2,D3,D4], 9, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,X,C3,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,'-',C4,D1,D2,D3,D4], 10, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,X,C4,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,'-',D1,D2,D3,D4], 11, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,X,D1,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,'-',D2,D3,D4], 12, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,X,D2,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,'-',D3,D4], 13, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,X,D3,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,'-',D4], 14, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,X,D4],NewLevel,Score, ScoreOld).
+evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,'-'], 15, Level, Score, ScoreOld) :-
+	Level >= 0,
+	NewLevel is Level - 1,
+    generar_numero(X),
+	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,X],NewLevel,Score, ScoreOld).
+evalNext(_, _, _, 0, _).
+
+evalMoves(B2, Level, Score, ScoreOld) :-
 	once(moverizquierda(B2, B2L, _)),
-	evaluate(B2, B2L, Level, S2L),
-	once(moverizquierda(B4, B4L, _)),
-	evaluate(B4, B4L, Level, S4L),
-	once(moverderecha(B2, B2R, _)),
-	evaluate(B2, B2R, Level, S2R),
-	once(moverderecha(B4, B4R, _)),
-	evaluate(B4, B4R, Level, S4R),
-	once(moverArriba(B2, B2U, _)),
-	evaluate(B2, B2U, Level, S2U),
-	once(moverArriba(B4, B4U, _)),
-	evaluate(B4, B4U, Level, S4U),
-	once(moverabajo(B2, B2D, _)),
-	evaluate(B2, B2D, Level, S2D),
-	once(moverabajo(B4, B4D, _)),
-	evaluate(B4, B4D, Level, S4D),
-	Score is 9*(S2L+S2R+S2U+S2D)+S4L+S4R+S4U+S4D.
+	evaluate(B2, B2L, Level, S2L, ScoreOld),
+    once(moverderecha(B2, B2R, _)),
+	evaluate(B2, B2R, Level, S2R, ScoreOld),
+    once(moverArriba(B2, B2U, _)),
+	evaluate(B2, B2U, Level, S2U, ScoreOld),
+    once(moverabajo(B2, B2D, _)),
+	evaluate(B2, B2D, Level, S2D, ScoreOld),
+	Score is S2L+S2R+S2U+S2D.
+
+process_board(Board, Sum_list, Max_list, EmptyCells) :-
+    process_board(Board, 0, -1, 0, Sum_list, Max_list, EmptyCells).
+
+process_board([], Sum, Max, Empty, Sum, Max, Empty).
+process_board([-|T], Sum, Max, Empty, Sum_list, Max_list, EmptyCells) :-
+    Empty1 is Empty + 1,
+    process_board(T, Sum, Max, Empty1, Sum_list, Max_list, EmptyCells).
+process_board([H|T], Sum, Max, Empty, Sum_list, Max_list, EmptyCells) :-
+    number(H),
+    Sum1 is Sum + H,
+    Max1 is max(Max, H),
+    process_board(T, Sum1, Max1, Empty, Sum_list, Max_list, EmptyCells).
+
 
 % calculates the score for a board. The score is just the sum of squares
 % of all tile values
 boardScore(Board, Score) :-
-	count_empty(Board, EmptyCellsScore),
-    sum_tiles(Board, TileValuesScore),
-    max_tile(Board, MaxTileScore),
-    calculate_monotonicity(Board, MonotonicityScore),
-    % Combine these scores using some formula to compute a final score for the board
-    Score is EmptyCellsScore * 256 + TileValuesScore + MaxTileScore * 16.
-
-% square every value of a list
-squared([], []).
-squared([H1|T1], T2) :-
-	H1 == '-',
-	squared(T1, T2).
-squared([H1|T1], [H2|T2]) :-
-	H1 \= '-',
-	H2 is H1 * H1,
-	squared(T1,T2).
+    process_board(Board, Sum_list, Max_list, EmptyCells),
+    Score is Sum_list + Max_list + EmptyCells.
 
 % the move with the highest score is selected
 selectMove(ScoreL, ScoreR, ScoreU, ScoreD, right) :-
@@ -580,9 +586,6 @@ testPlayGame(Board, Won, Strategy) :-
 		Won = false;
     	mejor_movimiento(Board, 4, Strategy, Move),
 		movimientoT(Board, Move, NewBoard, _),
-		tolist(NewBoard, ListT),
-		max_tile(ListT, X),
-		write('mejor ficha alcanzada:'), writeln(X),
     	(testGameWon(NewBoard) -> 
 			Won = true;
 			add_next_number(NewBoard, FullNewBoard),
@@ -590,9 +593,6 @@ testPlayGame(Board, Won, Strategy) :-
 		)
 	).
 
-max_tile(Board, MaxTileScore) :-
-    exclude(=('-'), Board, Tiles),
-    max_list(Tiles, MaxTileScore).
 
 % Add a new number to the board
 add_next_number(Grid, NewGrid) :-
