@@ -652,7 +652,7 @@ test(Counter, Stream, NivelMiniMax) :-
 	test(Counter1, Stream, NivelMiniMax).
 
 % testLoop juega 100 juegos con el mismo tablero inicial y escribe los resultados en un archivo
-testLoop(101, _, _, _, _).
+testLoop(34, _, _, _, _).
 testLoop(Counter, Stream, Board, NivelMiniMax, Strategy) :-
     testPlayGame(Board, NivelMiniMax, Strategy, Won, 0, FinalScore, FinalBoard),
     write(Stream, Counter),
