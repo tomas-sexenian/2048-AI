@@ -1,173 +1,188 @@
-mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
-    Estrategia = random, random_move(Tablero, Jugada), !.
-mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
-    Estrategia = dummy, dummy_move(Tablero, Jugada), !.
-mejor_movimiento(Tablero, _, Estrategia, Jugada) :-
-	writeln('acaaaaaaaaaa'),
-	writeln(Tablero),
-    Estrategia = ia,
-    ia_move(Tablero, 4, Jugada).
+% list of possible moves
+moves([up, down, left, right]).
 
-random_move(Tablero, Jugada) :-
-	writeln('random_move'),
-    findall(Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), \+ Tablero = TableroNew), Jugadas),
-    (Jugadas = [] -> Jugada = up ; random_member(Jugada, Jugadas)).
+% random strategy
+strategy(random, Board, _, Move) :-
+	findall(Move1, (member(Move1, [up, down, left, right]), movimientoT(Board, Move1, NewBoard, _), Board \== NewBoard), Moves),
+    (Moves == [] -> Move = up ; random_member(Move, Moves)).
 
-dummy_move(Tablero, Jugada) :-
-	writeln('dummy_move'),
-    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, Score), \+ Tablero = TableroNew), ScoreList),
-    (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
+% dummy strategy
+strategy(dummy, Board, _, Move) :-
+    moves(Moves),
+    findall(Score-Mv, (member(Mv, Moves), movimientoT(Board, Mv, NewBoard, Score), Board \== NewBoard), ScoresMoves),
+    max_member(_-Move, ScoresMoves).
 
-ia_move(Tablero, NivelMiniMax, Jugada) :-
-	writeln('ia_move'),
-	writeln(NivelMiniMax),
-    tolist(Tablero, ListTablero),
-	once(moverizquierda(ListTablero, LeftTablero, _)),
-    (equal(ListTablero, LeftTablero) -> ScoreL = 0 ;  evaluate(ListTablero, LeftTablero, NivelMiniMax, ScoreL)),
-	once(moverderecha(ListTablero, RightTablero, _)),
-    (equal(ListTablero, RightTablero) -> ScoreR = 0 ;  evaluate(ListTablero, RightTablero, NivelMiniMax, ScoreR)),
-	once(moverArriba(ListTablero, UpTablero, _)),
-    (equal(ListTablero, UpTablero) -> ScoreU = 0 ;  evaluate(ListTablero, UpTablero, NivelMiniMax, ScoreU)),
-	once(moverabajo(ListTablero, DownTablero, _)),
-    (equal(ListTablero, DownTablero) -> ScoreD = 0 ;  evaluate(ListTablero, DownTablero, NivelMiniMax, ScoreD)),
-	selectMove(ScoreL, ScoreR, ScoreU, ScoreD, Jugada),
-    writeln(ScoreL),writeln(ScoreR),writeln(ScoreU),writeln(ScoreD),
-	writeln(Jugada).
+% ai strategy
+strategy(ai, Board, Depth, Move) :-
+    findall(Score-Move1, (member(Move1, [up, down, left, right]), calculateScore(Board, Depth, Move1, Score)), ScoresMoves),
+    max_member(_-Move, ScoresMoves).
 
-% checks if two lists are equal
-equal([],[]).
-equal([H1|T1],[H2|T2]) :-
-	H1 == H2,
-	equal(T1,T2).
+% calculateScore(+Board, +Depth, +Move, -Score)
+calculateScore(Board, Depth, Move, Score) :-
+	movimientoT(Board, Move, NewBoard, _),
+	Board \== NewBoard,
+	generateScore(NewBoard, Depth, Score,0),
+	delete_all_cached_values.
 
-% if the move is not possible, it gets a score of 0
-evaluate(Board, NewBoard, _, 0) :-
-	equal(Board, NewBoard).
-% this, along with the evalNext and evalMoves predicates search the game
-% space for the best move
-evaluate(_, Board, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	boardScore(Board, MejorScoreActual),
-    findall(Score, (between(0, 15, Number), evalNext(Board,Number,NewLevel, Score)), Scores),
-    sum_list(Scores, SumScore),
-	Score is 10*MejorScoreActual+SumScore. 
+% Declare the predicate as dynamic
+:- dynamic cached_value/2.
 
-evalNext(['-',A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 0, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([2,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], [4,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,'-',A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 1, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],[A1,4,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], NewLevel,Score).
-evalNext([A1,A2,'-',A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 2, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,2,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], [A1,A2,4,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,'-',B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 3, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,2,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,'-',B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 4, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,2,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,A4,4,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,'-',B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], 5, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,A4,B1,4,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,'-',B4,C1,C2,C3,C4,D1,D2,D3,D4], 6, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,2,B4,C1,C2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,A4,B1,B2,4,B4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,'-',C1,C2,C3,C4,D1,D2,D3,D4], 7, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,2,C1,C2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,A4,B1,B2,B3,4,C1,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,'-',C2,C3,C4,D1,D2,D3,D4], 8, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,2,C2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,A4,B1,B2,B3,B4,4,C2,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,'-',C3,C4,D1,D2,D3,D4], 9, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,2,C3,C4,D1,D2,D3,D4], [A1,A2,A3,A4,B1,B2,B3,B4,C1,4,C3,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,'-',C4,D1,D2,D3,D4], 10, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,2,C4,D1,D2,D3,D4], [A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,4,C4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,'-',D1,D2,D3,D4], 11, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,2,D1,D2,D3,D4], [A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,4,D1,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,'-',D2,D3,D4], 12, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,2,D2,D3,D4], [A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,4,D2,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,'-',D3,D4], 13, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,2,D3,D4],[A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,4,D3,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,'-',D4], 14, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,2,D4], [A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,4,D4],NewLevel,Score).
-evalNext([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,'-'], 15, Level, Score) :-
-	Level >= 0,
-	NewLevel is Level - 1,
-	evalMoves([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,2], [A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,4],NewLevel,Score).
-evalNext(_, _, _, 0).
+% Define a predicate to retrieve the cached value
+set_cached_value(Key, Value) :-
+    % If the value is not cached, compute it and cache it
+    assertz(cached_value(Key, Value)).
 
-evalMoves(B2,B4, Level, Score) :-
-	once(moverizquierda(B2, B2L, _)),
-    (equal(B2, B2L) -> S2L = 0 ;  evaluate(B2, B2L, Level, S2L)),
-    once(moverderecha(B2, B2R, _)),
-    (   equal(B2, B2R) -> S2R = 0 ;  evaluate(B2, B2R, Level, S2R)),
-    once(moverArriba(B2, B2U, _)),
-    (   equal(B2, B2U) -> S2U = 0 ;  evaluate(B2, B2U, Level, S2U)),
-    once(moverabajo(B2, B2D, _)),
-    (   equal(B2, B2D) -> S2D = 0 ;  evaluate(B2, B2D, Level, S2D)),
-    once(moverizquierda(B4, B4L, _)),
-    (   equal(B4, B4L) -> S4L = 0 ;  evaluate(B4, B4L, Level, S4L)),
-    once(moverderecha(B4, B4R, _)),
-    (   equal(B4, B4R) -> S4R = 0 ;  evaluate(B4, B4R, Level, S4R)),
-    once(moverArriba(B4, B4U, _)),
-   (    equal(B4, B4U) -> S4U = 0 ;  evaluate(B4, B4U, Level, S4U)),
-    once(moverabajo(B4, B4D, _)),
-    (   equal(B4, B4D) -> S4D = 0 ;  evaluate(B4, B4D, Level, S4D)),
-	Score is 9*(S2L+S2R+S2U+S2D)+S4L+S4R+S4U+S4D.
+% Define a predicate to delete a cached value
+delete_cached_value(Key) :-
+    % Remove the cached value
+    retract(cached_value(Key, _)).
 
+% Define a predicate to delete all cached values
+delete_all_cached_values :-
+    % Find all the keys of the cached values
+    findall(Key, cached_value(Key, _), Keys),
+    % Delete each cached value
+    maplist(delete_cached_value, Keys).
 
-boardScore(Board, Score) :-
-    squared(Board, Squared),
-	sum_list(Squared, Score).
+% Define a predicate to check if a value is already cached
+is_value_cached(Key, Value) :-
+    % Check if the value is already cached
+    cached_value(Key, Value), !.
 
-% square every value of a list
-squared([], []).
-squared([H1|T1], T2) :-
-	H1 == -,
-	squared(T1, T2).
-squared([H1|T1], [H2|T2]) :-
-	H1 \= -,
-	H2 is H1 * H1,
-	squared(T1,T2).
-% the move with the highest score is selected
-selectMove(ScoreL, ScoreR, ScoreU, ScoreD, right) :-
-	ScoreR >= ScoreU,
-	ScoreR >= ScoreD,
-	ScoreR >= ScoreL.
-selectMove(ScoreL, ScoreR, ScoreU, ScoreD, up) :-
-	ScoreU >= ScoreR,
-	ScoreU >= ScoreD,
-	ScoreU >= ScoreL.
-selectMove(ScoreL, ScoreR, ScoreU, ScoreD, down) :-
-	ScoreD >= ScoreU,
-	ScoreD >= ScoreR,
-	ScoreD >= ScoreL.
-selectMove(_, _, _, _, left).
+% generateScore(+Board, +Depth, -Score)
+generateScore(Board, 0, Score,_) :-
+	evaluate_board(Board, Score).
+generateScore(Board, Depth, Score, CleanCache) :-
+    (CleanCache ==  2 ->  delete_all_cached_values ; true),
+	Depth > 0,
+	findall(
+		CellScore, 
+		(
+			arg(Row, Board, RowFunctor), 
+			arg(Col, RowFunctor, Value), 
+			Value == '-',
+			(is_value_cached(Row-Col, CachedCellScore) -> 
+				CellScore = CachedCellScore ;
+				simulate2(Board, Depth, Row, Col, Score2, CleanCache),
+				simulate4(Board, Depth, Row, Col, Score4, CleanCache),
+				CellScore is Score2 + Score4,
+				set_cached_value(Row-Col, CellScore))
+		), 
+		CellsScores
+	),
+	sum_list(CellsScores, Score).
 
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+% multiply/3 multiplies two numbers and returns a floating-point result
+multiply(X, Y, Result) :-
+    Result is float(X) * float(Y).
+
+% simulate2(+Board, +Depth, +Row, +Col, -Score) -> Simulate the score if the cell is filled with 2 (2 has a 80% chance of happening)
+simulate2(Board, Depth, Row, Col, Score2, CleanCache) :-
+	arg(Row, Board, RowFunctor),
+	setarg(Col, RowFunctor, 2),
+	setarg(Row, Board, RowFunctor),
+	calculateMoveScore(Board, Depth, MoveScore, CleanCache),
+	multiply(MoveScore, 0.8, Score2).
+
+% simulate4(+Board, +Depth, +Row, +Col, -Score) -> Simulate the score if the cell is filled with 4 (4 has a 20% chance of happening)
+simulate4(Board, Depth, Row, Col, Score4, CleanCache) :-
+	arg(Row, Board, RowFunctor),
+	setarg(Col, RowFunctor, 4),
+	setarg(Row, Board, RowFunctor),
+	calculateMoveScore(Board, Depth, MoveScore, CleanCache),
+	multiply(MoveScore, 0.2, Score4).
+
+% calculateMoveScore(+Board, +Depth, -Score) -> Calculate the score of the move
+calculateMoveScore(Board, Depth, Score, CleanCache) :-
+    (CleanCache == 2 ->  NewLevelCache = 0; NewLevelCache is CleanCache + 1),
+	NextDepth is Depth - 1,
+	findall(
+		MoveScore, 
+		(
+			member(Move, [up, down, left, right]), 
+			movimientoT(Board, Move, NewBoard, _), 
+			Board \== NewBoard, 
+			generateScore(NewBoard, NextDepth, MoveScore, NewLevelCache)
+		), 
+		MovesScores
+	),
+	max_member(Score, MovesScores).
+
+% edge_score(+Board, -Score) -> This heuristic gives higher scores to tiles placed on the edges of the board.
+edge_score(Board, Score) :-
+    functor(Board, _, Rows),
+    functor(Board, _, Cols),
+    findall(Value, (arg(Row, Board, RowFunctor), (Row =:= 1; Row =:= Rows), arg(Col, RowFunctor, Value), (Col =:= 1; Col =:= Cols), (Value == '-' -> Value is 0; true)), EdgeValues),
+    sum_list(EdgeValues, Score).
+
+% monotonicity(+Board, -Score) -> This heuristic measures the degree to which the values of the tiles are ordered in a specific direction (e.g., increasing or decreasing)
+monotonicity(Board, Score) :-
+    findall(RowScore, (arg(_, Board, RowFunctor), row_monotonicity(RowFunctor, RowScore)), RowScores),
+    sum_list(RowScores, Score).
+
+% row_monotonicity(+RowFunctor, -Score)
+row_monotonicity(RowFunctor, Score) :-
+    functor(RowFunctor, _, Cols),
+    row_monotonicity(Cols, RowFunctor, Score).
+
+% row_monotonicity(+Cols, +RowFunctor, -Score)
+row_monotonicity(1, _, 0).
+row_monotonicity(Cols, RowFunctor, Score) :-
+    Cols > 1,
+    arg(Cols, RowFunctor, X),
+	( X == '-' -> X is 0; true),
+	Cols1 is Cols - 1,
+    arg(Cols1, RowFunctor, Y),
+	( Y == '-' -> Y is 0; true),
+    row_monotonicity(Cols1, RowFunctor, Score1),
+    (X =< Y -> Score is Score1 + 1; Score is Score1).
+
+% smoothness(+Board, -Score) :- This heuristic measures the difference in values between adjacent tiles.
+smoothness(Board, Score) :-
+    findall(RowScore, (arg(_, Board, RowFunctor), row_smoothness(RowFunctor, RowScore)), RowScores),
+    sum_list(RowScores, Score).
+
+% row_smoothness(+RowFunctor, -Score)
+row_smoothness(RowFunctor, Score) :-
+    functor(RowFunctor, _, Cols),
+    row_smoothness(Cols, RowFunctor, Score).
+
+% row_smoothness(+Cols, +RowFunctor, -Score)
+row_smoothness(1, _, 0).
+row_smoothness(Cols, RowFunctor, Score) :-
+    Cols > 1,
+    arg(Cols, RowFunctor, X),
+	(X == '-' -> X is 0; true),
+	Cols1 is Cols - 1,
+    arg(Cols1, RowFunctor, Y),
+	(Y == '-' -> Y is 0; true),
+    row_smoothness(Cols1, RowFunctor, Score1),
+    Diff is abs(X - Y),
+    Score is Score1 + Diff.
+
+% max_tile(+Board, -MaxTileScore) -> This heuristic gives higher scores to boards with higher tiles.
+max_tile(Board, MaxTileScore) :-
+	findall(Value, (arg(_, Board, RowFunctor), arg(_, RowFunctor, Value), (Value == '-' -> Value is 0; true)), Values),
+	max_list(Values, MaxTileScore).
+
+% count_empty_cells(+Board, -Count) -> This heuristic count the number of empty cells.
+count_empty_cells(Board, Count) :-
+    findall(1, (arg(_, Board, RowFunctor), arg(_, RowFunctor, Cell), Cell == '-'), Empties),
+    length(Empties, Count).
+
+% board evaluation function
+evaluate_board(Board, Score) :-
+	monotonicity(Board, Monotonicity),
+	smoothness(Board, Smoothness),
+	count_empty_cells(Board, EmptyCells),
+	max_tile(Board, MaxTile),
+	Score is (EmptyCells * 256) + (Monotonicity * 128) + (MaxTile * 64) - (Smoothness * 32).
+
+% main predicate for choosing the best move
+mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
+    strategy(Estrategia, Tablero, NivelMiniMax, Jugada),
+    !.
+mejor_movimiento(_, _, _, up).
 
 % Inicio de predicado movimientoT
 movimientoT(Tablero, Movimiento, TableroNew, ScoreGen) :-
@@ -540,22 +555,25 @@ moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
 %%%%%%%%%%%%%%%%%%%%%%%%% Test %%%%%%%%%%%%%%%%%%%%%%%%%
 
 % testPlayGame plays a game using mejor_movimiento and returns the final score and a flag indicating whether the game was won
-testPlayGame(Board, Won, Strategy) :-
-    (testGameFull(Board) -> 
-		Won = false;
-    	mejor_movimiento(Board, 4, Strategy, Move),
-		movimientoT(Board, Move, NewBoard, _),
+testPlayGame(Board, NivelMiniMax, Strategy, Won, CurrentScore, FinalScore, FinalBoard) :-
+    (game_over(Board) -> 
+		Won = false,
+		FinalScore = CurrentScore,
+		FinalBoard = Board;
+    	mejor_movimiento(Board, NivelMiniMax, Strategy, Move),
+		movimientoT(Board, Move, NewBoard, Score),
+		CurrentScore1 is CurrentScore + Score,
     	(testGameWon(NewBoard) -> 
-			Won = true;
+			Won = true,
+			FinalScore = CurrentScore1,
+			FinalBoard = NewBoard;
 			add_next_number(NewBoard, FullNewBoard),
-        	testPlayGame(FullNewBoard, Won, Strategy)
+        	testPlayGame(FullNewBoard, NivelMiniMax, Strategy, Won, CurrentScore1, FinalScore, FinalBoard)
 		)
 	).
 
-
 % Add a new number to the board
 add_next_number(Grid, NewGrid) :-
-    repeat,
     random_between(1, 4, Row),
     random_between(1, 4, Col),
     arg(Row, Grid, RowTerm),
@@ -574,13 +592,18 @@ add_next_number(Grid, NewGrid) :-
 testGameWon(m(f(A, B, C, D),
 			  f(E, F, G, H),
 			  f(I, J, K, L),
-			  f(M, N, O, P))) :- member('2048', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
+			  f(M, N, O, P))) :- member(2048, [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
 
-% Dummy predicate to check if the game board is full
-testGameFull(m(f(A, B, C, D),
-               f(E, F, G, H),
-               f(I, J, K, L),
-               f(M, N, O, P))) :- \+ member('-', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
+% Dummy predicate to check if the game is over (no more moves can be made)
+game_over(Board) :-
+	movimientoT(Board, up, NewBoard, _),
+	Board == NewBoard,
+	movimientoT(Board, down, NewBoard1, _),
+	Board == NewBoard1,
+	movimientoT(Board, left, NewBoard2, _),
+	Board == NewBoard2,
+	movimientoT(Board, right, NewBoard3, _),
+	Board == NewBoard3.
 
 empty_board(m(f('-', '-', '-', '-'),
               f('-', '-', '-', '-'),
@@ -595,29 +618,47 @@ initial_board(Initial_Board) :-
 % test/0 generates test data for the game
 test :- 
 	open('2048_test_data.txt', write, Stream),
-	test(1, Stream),
+	test(1, Stream, 4),
     close(Stream).
 
 % test/1 generate 10 initial boards and plays 100 games for each board
-test(2, _).
-test(Counter, Stream) :-
+test(11, _, _).
+test(Counter, Stream, NivelMiniMax) :-
 	initial_board(Board),
 	write(Stream,'Testing board: '),
 	write(Stream, Counter),
 	write(Stream, ' '),
 	write(Stream, Board),
 	nl(Stream),
-	testLoop(1, Stream, Board, ia),
+	testLoop(100, Stream, Board, NivelMiniMax, 'ai'),
 	Counter1 is Counter + 1,
-	test(Counter1, Stream).
+	test(Counter1, Stream, NivelMiniMax).
 
 % testLoop play 100 games with the same initial board and writes the results to a file
-testLoop(3, _, _, _).
-testLoop(Counter, Stream, Board, Strategy) :-
-    testPlayGame(Board, Won, Strategy),
+testLoop(101, _, _, _, _).
+testLoop(Counter, Stream, Board, NivelMiniMax, Strategy) :-
+    testPlayGame(Board, NivelMiniMax, Strategy, Won, 0, FinalScore, FinalBoard),
     write(Stream, Counter),
     write(Stream, ' '),
 	(Won -> write(Stream, 'Won') ; write(Stream, 'Lost')),
-    nl(Stream),
+	write(Stream, ' '),
+	write(Stream, FinalScore),
+	nl(Stream),
+	% Write the final board row by row
+	arg(1, FinalBoard, Row1),
+	arg(2, FinalBoard, Row2),
+	arg(3, FinalBoard, Row3),
+	arg(4, FinalBoard, Row4),
+	write(Stream, Row1),
+	nl(Stream),
+	write(Stream, Row2),
+	nl(Stream),
+	write(Stream, Row3),
+	nl(Stream),
+	write(Stream, Row4),
+	nl(Stream),
     Counter1 is Counter + 1,
-    testLoop(Counter1, Stream, Board, Strategy).
+    testLoop(Counter1, Stream, Board, NivelMiniMax, Strategy).
+
+% empty_board(m(f('-', '-', '-', '-'),f('-', '-', '-', '-'),f('-', '-', '-', '-'),f('-', '-', '-', '-'))).
+% testGameWon(m(f(2048, '-', '-', '-'),f('-', '-', '-', '-'),f('-', '-', '-', '-'),f('-', '-', '-', '-'))).
