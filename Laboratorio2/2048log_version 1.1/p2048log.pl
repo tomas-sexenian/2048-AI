@@ -12,9 +12,11 @@ strategy(random, Board, _, Move) :-
 
 % estrategia dummy
 strategy(dummy, Board, _, Move) :-
-    moves(Moves),
-    findall(Score-Mv, (member(Mv, Moves), movimientoT(Board, Mv, NewBoard, Score), Board \== NewBoard), ScoresMoves),
-    max_member(_-Move, ScoresMoves).
+    movimientoT(Board, up, _, ScoreU),
+    movimientoT(Board, down, _, ScoreD),
+    movimientoT(Board, left, _, ScoreL),
+    movimientoT(Board, right, _, ScoreR),
+    seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, Move).
 
 % estrategia ia
 strategy(ia, Board, Depth, Move) :-
@@ -48,6 +50,22 @@ delete_all_cached_values :-
 % is_value_cached(+Key, +Value) -> Verifica si la regla cached_value(Key, Value) pertenece al programa logico
 is_value_cached(Key, Value) :-
     cached_value(Key, Value), !.
+
+% seleccionaMejorMov(+ScoreL, +ScoreR, +ScoreU, +ScoreD, -Move) -> devuelve el moviemiento con el mejor score  
+seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, up) :-
+	ScoreU >= ScoreR,
+	ScoreU >= ScoreD,
+	ScoreU >= ScoreL.
+seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, down) :-
+	ScoreD >= ScoreU,
+	ScoreD >= ScoreR,
+	ScoreD >= ScoreL.
+seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, left) :-
+	ScoreL >= ScoreU,
+	ScoreL >= ScoreD,
+	ScoreL >= ScoreR.
+
+seleccionaMejorMov(_, _, _, _, right).
 
 % generateScore(+Board, +Depth, -Score, +CleanCache) -> generateScore toma el estado actual del tablero, la profundidad minimax, cuando
 % CleanCache es igual a 2 se borran los datos cacheados hasta el momento. Devuelve el puntaje que el tablero tendra luego de Depth movimientos
