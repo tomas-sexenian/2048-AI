@@ -188,7 +188,7 @@ evaluate_board(Board, Score) :-
 	smoothness(Board, Smoothness),
 	count_empty_cells(Board, EmptyCells),
 	max_tile(Board, MaxTile),
-	Score is (EmptyCells * 256) + (Monotonicity * 128) + (MaxTile * 64) - (Smoothness * 32).
+	Score is (EmptyCells * 2500) + (Monotonicity * 10) + (MaxTile * 64) - (Smoothness * 32).
 
 % mejor_movimiento(+Tablero,+NivelMiniMax,+Estrategia,-Jugada) -> +Tablero representa un tablero con el estado del juego, +NivelMiniMax 
 % representa el nivel para el algoritmo miminax, +Estrategia representa el nombre de la estrategia a utilizar (este argumento permite probar mas de una estrategia), 
