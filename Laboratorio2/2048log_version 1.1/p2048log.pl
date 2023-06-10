@@ -3,7 +3,7 @@ moves([up, down, left, right]).
 
 
 % strategy(+NombreEstrategia, +Tablero, ?NivelMinimax, -Jugada) -> strategy toma la estrategia a utilizar, el tablero y 
-% el nivel minimax (en caso de que la estrategia sea ai), devuelve la jugada a realizar de acuerdo a la estrategia
+% el nivel minimax (en caso de que la estrategia sea ia), devuelve la jugada a realizar de acuerdo a la estrategia
 
 % estrategia aleatoria
 strategy(random, Board, _, Move) :-
@@ -17,7 +17,7 @@ strategy(dummy, Board, _, Move) :-
     max_member(_-Move, ScoresMoves).
 
 % estrategia ia
-strategy(ai, Board, Depth, Move) :-
+strategy(ia, Board, Depth, Move) :-
     findall(Score-Move1, (member(Move1, [up, down, left, right]), calculateScore(Board, Depth, Move1, Score)), ScoresMoves),
     max_member(_-Move, ScoresMoves).
 
@@ -647,7 +647,7 @@ test(11, _, _).
 test(Counter, Stream, NivelMiniMax) :-
 	initial_board(Board),
 	nl(Stream),
-	testLoop(1, Stream, Board, NivelMiniMax, 'ai'),
+	testLoop(1, Stream, Board, NivelMiniMax, 'ia'),
 	Counter1 is Counter + 1,
 	test(Counter1, Stream, NivelMiniMax).
 
