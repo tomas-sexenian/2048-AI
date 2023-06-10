@@ -1,143 +1,227 @@
-%%%%%%%%%%%%%%%%%%%%%%%%% COMIENZO mejor_movimiento %%%%%%%%%%%%%%%%%%%%%%%%%
+% lista de movimientos posibles
+moves([up, down, left, right]).
 
-mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
-    Estrategia = random, random_move(Tablero, Jugada), !.
-mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
-    Estrategia = dummy, dummy_move(Tablero, Jugada), !.
-mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
-    Estrategia = ia, ia_move(Tablero, NivelMiniMax, Jugada).
 
-random_move(Tablero, Jugada) :-
-    findall(Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, _), \+ Tablero = TableroNew), Jugadas),
-    (Jugadas = [] -> Jugada = up ; random_member(Jugada, Jugadas)).
+% strategy(+NombreEstrategia, +Tablero, ?NivelMinimax, -Jugada) -> strategy toma la estrategia a utilizar, el tablero y 
+% el nivel minimax (en caso de que la estrategia sea ai), devuelve la jugada a realizar de acuerdo a la estrategia
 
-dummy_move(Tablero, Jugada) :-
-    findall(Score-Jugada, (member(Jugada, [up, down, left, right]), movimientoT(Tablero, Jugada, TableroNew, Score), \+ Tablero = TableroNew), ScoreList),
-    (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
+% estrategia aleatoria
+strategy(random, Board, _, Move) :-
+	findall(Move1, (member(Move1, [up, down, left, right]), movimientoT(Board, Move1, NewBoard, _), Board \== NewBoard), Moves),
+    (Moves == [] -> Move = up ; random_member(Move, Moves)).
 
-ia_move(Tablero, NivelMiniMax, Jugada) :-
-    findall(
-        Score-Jugada, 
-        (
-            member(Jugada, [up, down, left, right]), 
-            movimientoT(Tablero, Jugada, TableroNew, _), 
-            minimax(TableroNew, NivelMiniMax, -inf, inf, Score), 
-            \+ Tablero = TableroNew
-        ), 
-        ScoreList
-    ),
-    (ScoreList = [] -> Jugada = up ; (keysort(ScoreList, SortedScoreList), reverse(SortedScoreList, [_-Jugada|_]))).
+% estrategia dummy
+strategy(dummy, Board, _, Move) :-
+    moves(Moves),
+    findall(Score-Mv, (member(Mv, Moves), movimientoT(Board, Mv, NewBoard, Score), Board \== NewBoard), ScoresMoves),
+    max_member(_-Move, ScoresMoves).
 
-% Minimax algorithm with Alpha-Beta pruning.
-minimax(Tablero, 0, _, _, Score) :- !, evaluate(Tablero, Score).
-minimax(Tablero, NivelMiniMax, Alpha, Beta, Score) :-
-    NivelMiniMax > 0,
-    NewNivel is NivelMiniMax - 1,
-    findall(ScoreNew, 
-            (member(Jugada, [up, down, left, right]), 
-             movimientoT(Tablero, Jugada, TableroNew, _),
-             minimax(TableroNew, NewNivel, Alpha, Beta, ScoreNew), 
-             \+ Tablero = TableroNew), 
-             Scores),
-    (Scores = [] -> Score = -1 ; best_score(Scores, Alpha, Beta, NivelMiniMax, Score)).
+% estrategia ia
+strategy(ai, Board, Depth, Move) :-
+    findall(Score-Move1, (member(Move1, [up, down, left, right]), calculateScore(Board, Depth, Move1, Score)), ScoresMoves),
+    max_member(_-Move, ScoresMoves).
 
-% Best score helper function.
-best_score([H|T], Alpha, Beta, Nivel, Best) :-
-    best_score(T, Alpha, Beta, H, Nivel, Best).
-best_score([], _, _, Best, _, Best).
-best_score([H|T], Alpha, Beta, CurrentBest, Nivel, Best) :-
-    update_bounds(Alpha, Beta, H, Nivel, NewAlpha, NewBeta),
-    (NewAlpha >= NewBeta -> Best = H ; best_score(T, NewAlpha, NewBeta, CurrentBest, Nivel, Best)).
+% calculateScore(+Board, +Depth, +Move, -Score) -> calculateScore toma el estado actual del tablero, la profundidad minimax y 
+% el siguiente movimiento a realizar, devuelve el puntaje luego de realizar el movimiento
+calculateScore(Board, Depth, Move, Score) :-
+	movimientoT(Board, Move, NewBoard, _),
+	Board \== NewBoard,
+	generateScore(NewBoard, Depth, Score,0),
+	delete_all_cached_values.
 
-% Update bounds helper function.
-update_bounds(Alpha, Beta, Score, Nivel, NewAlpha, Beta) :-
-    Nivel mod 2 =:= 0, Score > Alpha, NewAlpha is Score, !.
-update_bounds(Alpha, Beta, Score, Nivel, Alpha, NewBeta) :-
-    Nivel mod 2 =:= 1, Score < Beta, NewBeta is Score, !.
-update_bounds(Alpha, Beta, _, _, Alpha, Beta).
+% Declarar el predicado como dinámico
+:- dynamic cached_value/2.
 
-evaluate(m(F1, F2, F3, F4), Score) :-
-    % Flatten the board to make it easier to work with
-    F1 = f(A1, B1, C1, D1), F2 = f(A2, B2, C2, D2), F3 = f(A3, B3, C3, D3), F4 = f(A4, B4, C4, D4),
-    append([A1, B1, C1, D1, A2, B2, C2, D2, A3, B3, C3, D3, A4, B4, C4, D4], Board),
-    % Compute the various heuristic scores based on the board
-    count_empty(Board, EmptyCellsScore),
-    sum_tiles(Board, TileValuesScore),
-    max_tile(Board, MaxTileScore),
-    calculate_monotonicity(Board, MonotonicityScore),
-    % Combine these scores using some formula to compute a final score for the board
-    Score is EmptyCellsScore * 256 + TileValuesScore + MaxTileScore * 16 + MonotonicityScore.
+% set_cached_value(+Key, +Value) -> Dado un (clave, valor) agrega una nueva regla cached_value(clave, valor).
+set_cached_value(Key, Value) :-
+    assertz(cached_value(Key, Value)).
 
-count_empty(Board, EmptyCellsScore) :-
-    include(=(('-')), Board, EmptyCells),
-    length(EmptyCells, EmptyCellsScore).
+% delete_cached_value(+Key) -> Dado una clave elimina todas las reglas cached_value(clave, valor) de clave = key.
+delete_cached_value(Key) :-
+    retract(cached_value(Key, _)).
 
-% sum_tiles/2 predicate
-sum_tiles(Board, TileValuesScore) :-
-    exclude(=('-'), Board, Tiles),
-    sum_list(Tiles, TileValuesScore).
+% delete_all_cached_values -> Borra todas las reglas cuyo funtor sea cached_value
+delete_all_cached_values :-
+    findall(Key, cached_value(Key, _), Keys),
+    maplist(delete_cached_value, Keys).
 
-% max_tile/2 predicate
+% is_value_cached(+Key, +Value) -> Verifica si la regla cached_value(Key, Value) pertenece al programa logico
+is_value_cached(Key, Value) :-
+    cached_value(Key, Value), !.
+
+% generateScore(+Board, +Depth, -Score, +CleanCache) -> generateScore toma el estado actual del tablero, la profundidad minimax, cuando
+% CleanCache es igual a 2 se borran los datos cacheados hasta el momento. Devuelve el puntaje que el tablero tendra luego de Depth movimientos
+generateScore(Board, 0, Score,_) :-
+	evaluate_board(Board, Score).
+generateScore(Board, Depth, Score, CleanCache) :-
+    (CleanCache ==  2 ->  delete_all_cached_values ; true),
+	Depth > 0,
+	findall(
+		CellScore, 
+		(
+			arg(Row, Board, RowFunctor), 
+			arg(Col, RowFunctor, Value), 
+			Value == '-',
+			(is_value_cached(Row-Col, CachedCellScore) -> 
+				CellScore = CachedCellScore ;
+				simulate2(Board, Depth, Row, Col, Score2, CleanCache),
+				simulate4(Board, Depth, Row, Col, Score4, CleanCache),
+				CellScore is Score2 + Score4,
+				set_cached_value(Row-Col, CellScore))
+		), 
+		CellsScores
+	),
+	sum_list(CellsScores, Score).
+
+% multiply(+X, +Y, -Result) multiplica dos números y devuelve un resultado de punto flotante
+multiply(X, Y, Result) :-
+    Result is float(X) * float(Y).
+
+% simulate2(+Board, +Depth, +Row, +Col, -Score) -> Simula el puntaje si la celda (Row, Col) se llena con 2 (2 tiene un 80% de posibilidades de suceder)
+simulate2(Board, Depth, Row, Col, Score2, CleanCache) :-
+	arg(Row, Board, RowFunctor),
+	setarg(Col, RowFunctor, 2),
+	setarg(Row, Board, RowFunctor),
+	calculateMoveScore(Board, Depth, MoveScore, CleanCache),
+	multiply(MoveScore, 0.8, Score2).
+
+% simulate4(+Board, +Depth, +Row, +Col, -Score) -> Simula el puntaje si la celda (Row, Col) se llena con 4 (4 tiene un 20% de probabilidad de suceder)
+simulate4(Board, Depth, Row, Col, Score4, CleanCache) :-
+	arg(Row, Board, RowFunctor),
+	setarg(Col, RowFunctor, 4),
+	setarg(Row, Board, RowFunctor),
+	calculateMoveScore(Board, Depth, MoveScore, CleanCache),
+	multiply(MoveScore, 0.2, Score4).
+
+% calculateMoveScore(+Board, +Depth, -Score, +CleanCache) -> Calcula la puntuación de la jugada
+calculateMoveScore(Board, Depth, Score, CleanCache) :-
+    (CleanCache == 2 ->  NewLevelCache = 0; NewLevelCache is CleanCache + 1),
+	NextDepth is Depth - 1,
+	findall(
+		MoveScore, 
+		(
+			member(Move, [up, down, left, right]), 
+			movimientoT(Board, Move, NewBoard, _), 
+			Board \== NewBoard, 
+			generateScore(NewBoard, NextDepth, MoveScore, NewLevelCache)
+		), 
+		MovesScores
+	),
+	max_member(Score, MovesScores).
+
+% monotonicity(+Board, -Score) -> Esta heurística mide el grado en que los valores del tablero están ordenados en una dirección específica (aumentando o disminuyendo)
+monotonicity(Board, Score) :-
+    findall(RowScore, (arg(_, Board, RowFunctor), row_monotonicity(RowFunctor, RowScore)), RowScores),
+    sum_list(RowScores, Score).
+
+% row_monotonicity(+RowFunctor, -Score)
+row_monotonicity(RowFunctor, Score) :-
+    functor(RowFunctor, _, Cols),
+    row_monotonicity(Cols, RowFunctor, Score).
+
+% row_monotonicity(+Cols, +RowFunctor, -Score)
+row_monotonicity(1, _, 0).
+row_monotonicity(Cols, RowFunctor, Score) :-
+    Cols > 1,
+    arg(Cols, RowFunctor, X),
+	( X == '-' -> X is 0; true),
+	Cols1 is Cols - 1,
+    arg(Cols1, RowFunctor, Y),
+	( Y == '-' -> Y is 0; true),
+    row_monotonicity(Cols1, RowFunctor, Score1),
+    (X =< Y -> Score is Score1 + 1; Score is Score1).
+
+% smoothness(+Board, -Score) -> Esta heurística mide la diferencia de valores entre las celdas adyacentes.
+smoothness(Board, Score) :-
+    findall(RowScore, (arg(_, Board, RowFunctor), row_smoothness(RowFunctor, RowScore)), RowScores),
+    sum_list(RowScores, Score).
+
+% row_smoothness(+RowFunctor, -Score)
+row_smoothness(RowFunctor, Score) :-
+    functor(RowFunctor, _, Cols),
+    row_smoothness(Cols, RowFunctor, Score).
+
+% row_smoothness(+Cols, +RowFunctor, -Score)
+row_smoothness(1, _, 0).
+row_smoothness(Cols, RowFunctor, Score) :-
+    Cols > 1,
+    arg(Cols, RowFunctor, X),
+	(X == '-' -> X is 0; true),
+	Cols1 is Cols - 1,
+    arg(Cols1, RowFunctor, Y),
+	(Y == '-' -> Y is 0; true),
+    row_smoothness(Cols1, RowFunctor, Score1),
+    Diff is abs(X - Y),
+    Score is Score1 + Diff.
+
+% max_tile(+Board, -MaxTileScore) -> Esta heurística devuelve el mayor valor entre los valores de todas las celdas.
 max_tile(Board, MaxTileScore) :-
-    exclude(=('-'), Board, Tiles),
-    max_list(Tiles, MaxTileScore).
+	findall(Value, (arg(_, Board, RowFunctor), arg(_, RowFunctor, Value), (Value == '-' -> Value is 0; true)), Values),
+	max_list(Values, MaxTileScore).
 
-% calculate_monotonicity/2 predicate
-calculate_monotonicity(m(F1, F2, F3, F4), MonotonicityScore) :-
-    calculate_row_monotonicity([F1, F2, F3, F4], RowScore),
-    transpose([F1, F2, F3, F4], [C1, C2, C3, C4]),
-    calculate_row_monotonicity([C1, C2, C3, C4], ColScore),
-    MonotonicityScore is RowScore + ColScore.
+% count_empty_cells(+Board, -Count) -> Esta heurística devuelve la cantidad de celdas vacias del tablero.
+count_empty_cells(Board, Count) :-
+    findall(1, (arg(_, Board, RowFunctor), arg(_, RowFunctor, Cell), Cell == '-'), Empties),
+    length(Empties, Count).
 
-% calculate_row_monotonicity/2 predicate
-calculate_row_monotonicity([], 0).
-calculate_row_monotonicity([Row|Rows], Score) :-
-    calculate_row_monotonicity(Rows, ScoreRest),
-    monotonicity(Row, RowScore),
-    Score is ScoreRest + RowScore.
+% evaluate_board(+Board, -Score) -> Toma el tablero y devuelve el puntaje asociado segun las heuristicas
+evaluate_board(Board, Score) :-
+	monotonicity(Board, Monotonicity),
+	smoothness(Board, Smoothness),
+	count_empty_cells(Board, EmptyCells),
+	max_tile(Board, MaxTile),
+	Score is (EmptyCells * 256) + (Monotonicity * 128) + (MaxTile * 64) - (Smoothness * 32).
 
-% monotonicity/2 predicate
-monotonicity([], 0).
-monotonicity([_], 0).
-monotonicity([X, Y|T], Score) :-
-    monotonicity([Y|T], ScoreRest),
-    ( X =< Y
-    -> Score is ScoreRest + 1
-    ; Score is ScoreRest - 1
-    ).
-
-% Board representation.
-m(f(_, _, _, _),f(_, _, _, _),f(_, _, _, _),f(_, _, _, _)).
-
-%%%%%%%%%%%%%%%%%%%%%%%%% FIN mejor_movimiento %%%%%%%%%%%%%%%%%%%%%%%%%
+% mejor_movimiento(+Tablero,+NivelMiniMax,+Estrategia,-Jugada) -> +Tablero representa un tablero con el estado del juego, +NivelMiniMax 
+% representa el nivel para el algoritmo miminax, +Estrategia representa el nombre de la estrategia a utilizar (este argumento permite probar mas de una estrategia), 
+% y -Jugada es un valor de retorno que representa la dirección del movimiento (arriba, abajo, izquierda, derecha)
+mejor_movimiento(Tablero, NivelMiniMax, Estrategia, Jugada) :-
+    strategy(Estrategia, Tablero, NivelMiniMax, Jugada),
+    !.
+mejor_movimiento(_, _, _, up).
 
 % Inicio de predicado movimientoT
+
+% movimientoT(+Board,+Direction,-BoardNew,-ScoreGen) -> Este predicado recibe un tablero en el predicado llamado m de formato de aridad 4,
+% y una dirección de movimiento, e implementa el movimiento del tablero en la dirección indicada. BoardNew y ScoreGen devuelven el nuevo 
+% tablero y la puntuación generada durante el movimiento
 movimientoT(Tablero, Movimiento, TableroNew, ScoreGen) :-
     once(aux_left(Tablero, Movimiento, TableroNew, ScoreGen));
 	once(aux_up(Tablero, Movimiento, TableroNew, ScoreGen));
 	once(aux_right(Tablero, Movimiento, TableroNew, ScoreGen));
 	once(aux_down(Tablero, Movimiento, TableroNew, ScoreGen)).
 
+% aux_up(+Tablero, up, -TableroNew, -ScoreGen) -> recibe el estado actual del tablero y el movimiento hacia arriba,
+% devuelve el tablero resultado de mover hacia arriba y el puntaje generado.
 aux_up(Tablero, up, TableroNew, ScoreGen) :-
     tolist(Tablero, Tnew),
     moverArriba(Tnew, Tsol, ScoreGen),
     reconstruir_tablero(Tsol,TableroNew).
 
+% aux_left(+Tablero, left, -TableroNew, -ScoreGen) -> recibe el estado actual del tablero y el movimiento hacia la izquierda,
+% devuelve el tablero resultado de mover hacia la izquierda y el puntaje generado.
 aux_left(Tablero, left, TableroNew, ScoreGen) :-
     tolist(Tablero, Tnew),
     moverizquierda(Tnew, Tsol, ScoreGen),
     reconstruir_tablero(Tsol,TableroNew).
 
+% aux_right(+Tablero, right, -TableroNew, -ScoreGen) -> recibe el estado actual del tablero y el movimiento hacia la derecha,
+% devuelve el tablero resultado de mover hacia la derecha y el puntaje generado.
 aux_right(Tablero, right, TableroNew, ScoreGen) :-
     tolist(Tablero, Tnew),
     moverderecha(Tnew, Tsol, ScoreGen),
     reconstruir_tablero(Tsol,TableroNew).
 
+% aux_down(+Tablero, down, -TableroNew, -ScoreGen) -> recibe el estado actual del tablero y el movimiento hacia abajo,
+% devuelve el tablero resultado de mover hacia abajo y el puntaje generado.
 aux_down(Tablero, down, TableroNew, ScoreGen) :-
     tolist(Tablero, Tnew),
     moverabajo(Tnew, Tsol, ScoreGen),
     reconstruir_tablero(Tsol,TableroNew).
 
+
+% reconstruir_tablero(+[A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3, D4], -Tablero) -> recibe la representacion en lista del
+% tablero y su representacion en el predicado m(f(...),f(...),f(...),f(...))
 reconstruir_tablero([A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3, D4], 
                   Tablero):-
     TermA =.. [f, A1, A2, A3, A4],
@@ -146,6 +230,8 @@ reconstruir_tablero([A1, A2, A3, A4, B1, B2, B3, B4, C1, C2, C3, C4, D1, D2, D3,
     TermD =.. [f, D1, D2, D3, D4],
     Tablero =.. [m, TermA, TermB, TermC, TermD].
 
+% tolist(+Tablero, -Lista) -> recibe el tablero en su representacion en el predicado m(f(...),f(...),f(...),f(...)) y devuelve su representacion
+% como lista 
 tolist(Tablero, Lista) :-
     Tablero =.. [ _, A1, A2, A3, A4],
     A1 =.. [_ | Args1],
@@ -156,7 +242,7 @@ tolist(Tablero, Lista) :-
     append(Args12, Args3, Args123),
     append(Args123, Args4, Lista).
     
-% Rotar el tablero hacia la derecha
+% rotartableroder(+Tablero, -TableroRotado) -> recibe el tablero representado como una lista y lo rota hacia la derecha
 rotartableroder([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
             [E1,E2,E3,E4,F1,F2,F3,F4,G1,G2,G3,G4,H1,H2,H3,H4]) :-
 	E1 = D1,
@@ -176,7 +262,7 @@ rotartableroder([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
 	H3 = B4,
 	H4 = A4.
 
-% Rotar el tablero hacia la izquierda
+% rotartableroizq(+Tablero, -TableroRotado) -> recibe el tablero representado como una lista y lo rota hacia la izquierda
 rotartableroizq([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
            [E1,E2,E3,E4,F1,F2,F3,F4,G1,G2,G3,G4,H1,H2,H3,H4]) :-
 	E1 = A4,
@@ -196,16 +282,22 @@ rotartableroizq([A1,A2,A3,A4,B1,B2,B3,B4,C1,C2,C3,C4,D1,D2,D3,D4],
 	H3 = C1,
 	H4 = D1.
 
+% moverArriba(+Tablero, -TableroNew, -ScoreGen) -> recibe el tablero representado como una lista y devuelve el tablero resultante de 
+% mover hacia arriba y el puntaje generado
 moverArriba(Tablero, TableroNew, ScoreGen):-
 	rotartableroizq(Tablero, Tnew1),
 	moverizquierda(Tnew1, Tnew2, ScoreGen),
 	rotartableroder(Tnew2, TableroNew).
 
+% moverabajo(+Tablero, -TableroNew, -ScoreGen) -> recibe el tablero representado como una lista y devuelve el tablero resultante de 
+% mover hacia abajo y el puntaje generado
 moverabajo(Tablero, TableroNew, ScoreGen):-
 	rotartableroder(Tablero, Tnew1),
 	moverizquierda(Tnew1, Tnew2, ScoreGen),
 	rotartableroizq(Tnew2, TableroNew).
 
+% moverderecha(+Tablero, -TableroNew, -ScoreGen) -> recibe el tablero representado como una lista y devuelve el tablero resultante de 
+% mover hacia la derecha y el puntaje generado
 moverderecha(Tablero, TableroNew, ScoreGen):-
 	rotartableroizq(Tablero, Tnew1),
 	rotartableroizq(Tnew1, Tnew2),
@@ -213,6 +305,8 @@ moverderecha(Tablero, TableroNew, ScoreGen):-
 	rotartableroder(Tnew3, Tnew4),
 	rotartableroder(Tnew4, TableroNew).
 
+% moverizquierda(+Tablero, -TableroNew, -ScoreGen) -> recibe el tablero representado como una lista y devuelve el tablero resultante de 
+% mover hacia la izquierda y el puntaje generado
 moverizquierda([], [], 0).
 
 % caso: 2|2|2|2 -> 4|4|-|-
@@ -481,22 +575,26 @@ moverizquierda([X1,X2,X3,X4|X], [N1,N2,N3,N4|N], ScoreGen) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%% Test %%%%%%%%%%%%%%%%%%%%%%%%%
 
-% testPlayGame plays a game using mejor_movimiento and returns the final score and a flag indicating whether the game was won
-testPlayGame(Board, Won, Strategy) :-
-    (testGameFull(Board) -> 
-		Won = false;
-    	mejor_movimiento(Board, _, Strategy, Move),
-		movimientoT(Board, Move, NewBoard, _),
+% testPlayGame juega un juego usando mejor_movimiento y devuelve el puntaje final y una bandera que indica si el juego fue ganado
+testPlayGame(Board, NivelMiniMax, Strategy, Won, CurrentScore, FinalScore, FinalBoard) :-
+    (game_over(Board) -> 
+		Won = false,
+		FinalScore = CurrentScore,
+		FinalBoard = Board;
+    	mejor_movimiento(Board, NivelMiniMax, Strategy, Move),
+		movimientoT(Board, Move, NewBoard, Score),
+		CurrentScore1 is CurrentScore + Score,
     	(testGameWon(NewBoard) -> 
-			Won = true;
+			Won = true,
+			FinalScore = CurrentScore1,
+			FinalBoard = NewBoard;
 			add_next_number(NewBoard, FullNewBoard),
-        	testPlayGame(FullNewBoard, Won, Strategy)
+        	testPlayGame(FullNewBoard, NivelMiniMax, Strategy, Won, CurrentScore1, FinalScore, FinalBoard)
 		)
 	).
 
-% Add a new number to the board
+% Añade un nuevo número al tablero
 add_next_number(Grid, NewGrid) :-
-    repeat,
     random_between(1, 4, Row),
     random_between(1, 4, Col),
     arg(Row, Grid, RowTerm),
@@ -511,17 +609,22 @@ add_next_number(Grid, NewGrid) :-
 		add_next_number(Grid, NewGrid)
 	).    
 
-% Dummy predicate to check if the game has been won (a 2048 tile has been reached)
+% Predicado dummy para comprobar si se ha ganado el juego (se ha alcanzado una ficha 2048)
 testGameWon(m(f(A, B, C, D),
 			  f(E, F, G, H),
 			  f(I, J, K, L),
-			  f(M, N, O, P))) :- member('2048', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
+			  f(M, N, O, P))) :- member(2048, [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
 
-% Dummy predicate to check if the game board is full
-testGameFull(m(f(A, B, C, D),
-               f(E, F, G, H),
-               f(I, J, K, L),
-               f(M, N, O, P))) :- \+ member('-', [A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P]).
+% Predicado dummy para verificar si el juego termino (no se pueden realizar mas movimientos)
+game_over(Board) :-
+	movimientoT(Board, up, NewBoard, _),
+	Board == NewBoard,
+	movimientoT(Board, down, NewBoard1, _),
+	Board == NewBoard1,
+	movimientoT(Board, left, NewBoard2, _),
+	Board == NewBoard2,
+	movimientoT(Board, right, NewBoard3, _),
+	Board == NewBoard3.
 
 empty_board(m(f('-', '-', '-', '-'),
               f('-', '-', '-', '-'),
@@ -533,33 +636,30 @@ initial_board(Initial_Board) :-
 	add_next_number(Empty_Board, Board),
 	add_next_number(Board, Initial_Board).
 
-% test/0 generates test data for the game
+% test/0 genera datos de prueba para el juego
 test :- 
 	open('2048_test_data.txt', write, Stream),
-	test(1, Stream),
+	test(1, Stream, 4),
     close(Stream).
 
-% test/1 generate 10 initial boards and plays 100 games for each board
-test(11, _).
-test(Counter, Stream) :-
+% test/3 genera 10 tableros iniciales y juega 100 juegos para cada tablero
+test(11, _, _).
+test(Counter, Stream, NivelMiniMax) :-
 	initial_board(Board),
-	write(Stream,'Testing board: '),
-	write(Stream, Counter),
-	write(Stream, ' '),
-	write(Stream, Board),
 	nl(Stream),
-	testLoop(1, Stream, Board, 'ai'),
+	testLoop(1, Stream, Board, NivelMiniMax, 'ai'),
 	Counter1 is Counter + 1,
-	test(Counter1, Stream).
+	test(Counter1, Stream, NivelMiniMax).
 
-% testLoop play 100 games with the same initial board and writes the results to a file
-testLoop(101, _, _, _).
-testLoop(Counter, Stream, Board, Strategy) :-
-    testPlayGame(Board, Won, Strategy),
+% testLoop juega 100 juegos con el mismo tablero inicial y escribe los resultados en un archivo
+testLoop(34, _, _, _, _).
+testLoop(Counter, Stream, Board, NivelMiniMax, Strategy) :-
+    testPlayGame(Board, NivelMiniMax, Strategy, Won, 0, FinalScore, FinalBoard),
     write(Stream, Counter),
     write(Stream, ' '),
 	(Won -> write(Stream, 'Won') ; write(Stream, 'Lost')),
-    nl(Stream),
+	write(Stream, ' '),
+	write(Stream, FinalScore),
+	nl(Stream),
     Counter1 is Counter + 1,
-    testLoop(Counter1, Stream, Board, Strategy).
-
+    testLoop(Counter1, Stream, Board, NivelMiniMax, Strategy).
