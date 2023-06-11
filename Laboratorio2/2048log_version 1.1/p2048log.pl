@@ -172,6 +172,8 @@ row_smoothness(Cols, RowFunctor, Score) :-
     Diff is abs(X - Y),
     Score is Score1 + Diff.
 
+% http://localhost:5000/autoplayP/42/ia/3/left/4-16-0-0x64-1024-256-2x128-8-8-0x4-2-4-4/11676/
+
 % max_tile(+Board, -MaxTileScore) -> Esta heurística devuelve el mayor valor entre los valores de todas las celdas.
 max_tile(Board, MaxTileScore) :-
 	findall(Value, (arg(_, Board, RowFunctor), arg(_, RowFunctor, Value), (Value == '-' -> Value is 0; true)), Values),
@@ -188,7 +190,7 @@ evaluate_board(Board, Score) :-
 	smoothness(Board, Smoothness),
 	count_empty_cells(Board, EmptyCells),
 	max_tile(Board, MaxTile),
-	Score is (EmptyCells * 2500) + (Monotonicity * 10) + (MaxTile * 64) - (Smoothness * 32).
+	Score is (EmptyCells * 19000) + (Monotonicity * 2) + (MaxTile * 30) - (Smoothness * 36).
 
 % mejor_movimiento(+Tablero,+NivelMiniMax,+Estrategia,-Jugada) -> +Tablero representa un tablero con el estado del juego, +NivelMiniMax 
 % representa el nivel para el algoritmo miminax, +Estrategia representa el nombre de la estrategia a utilizar (este argumento permite probar mas de una estrategia), 
