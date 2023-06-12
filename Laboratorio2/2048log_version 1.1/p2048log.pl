@@ -16,7 +16,9 @@ strategy(dummy, Board, _, Move) :-
     movimientoT(Board, down, _, ScoreD),
     movimientoT(Board, left, _, ScoreL),
     movimientoT(Board, right, _, ScoreR),
-    seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, Move).
+    seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, Move),
+	movimientoT(Board, Move, NewBoard, _),
+	Board \== NewBoard.
 
 % estrategia ia
 strategy(ia, Board, Depth, Move) :-
@@ -53,18 +55,24 @@ is_value_cached(Key, Value) :-
 
 % seleccionaMejorMov(+ScoreL, +ScoreR, +ScoreU, +ScoreD, -Move) -> devuelve el moviemiento con el mejor score  
 seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, up) :-
+    ScoreU \== 0,
 	ScoreU >= ScoreR,
 	ScoreU >= ScoreD,
 	ScoreU >= ScoreL.
 seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, down) :-
+    ScoreD \== 0,
 	ScoreD >= ScoreU,
 	ScoreD >= ScoreR,
 	ScoreD >= ScoreL.
 seleccionaMejorMov(ScoreL, ScoreR, ScoreU, ScoreD, left) :-
+    ScoreL \== 0,
 	ScoreL >= ScoreU,
 	ScoreL >= ScoreD,
 	ScoreL >= ScoreR.
 
+seleccionaMejorMov(_, _, _, _, up).
+seleccionaMejorMov(_, _, _, _, down).
+seleccionaMejorMov(_, _, _, _, left).
 seleccionaMejorMov(_, _, _, _, right).
 
 % generateScore(+Board, +Depth, -Score, +CleanCache) -> generateScore toma el estado actual del tablero, la profundidad minimax, cuando
